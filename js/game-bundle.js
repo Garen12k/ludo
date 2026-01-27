@@ -455,6 +455,7 @@
 
             this.winner = null;
             this.soundEnabled = true;
+            this.isOnlineGame = false;
         }
 
         initGame(config) {
@@ -521,6 +522,15 @@
                 player: this.getCurrentPlayer(),
                 consecutiveSixes: this.consecutiveSixes
             });
+
+            // Broadcast to online players
+            if (this.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+                networkManager.broadcastAction('DICE_ROLL', {
+                    value,
+                    playerIndex: this.currentPlayerIndex,
+                    consecutiveSixes: this.consecutiveSixes
+                });
+            }
         }
 
         canRollAgain() {
@@ -1196,8 +1206,21 @@
         async selectToken(tokenId) {
             if (gameState.turnPhase !== TURN_PHASE.SELECTING) return;
 
+            // In online mode, only local player can select tokens on their turn
+            if (gameState.isOnlineGame && networkManager.isOnline && !networkManager.isLocalPlayerTurn()) {
+                return;
+            }
+
             const move = gameState.validMoves.find(m => m.tokenId === tokenId);
             if (!move) return;
+
+            // Broadcast token selection in online mode
+            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+                networkManager.broadcastAction('TOKEN_SELECT', {
+                    tokenId,
+                    playerIndex: gameState.currentPlayerIndex
+                });
+            }
 
             await this.executeMove(move);
         },
@@ -1562,6 +1585,8 @@
             this.mainMenu = document.getElementById('main-menu');
             this.setupScreen = document.getElementById('setup-screen');
             this.gameScreen = document.getElementById('game-screen');
+            this.onlineMenu = document.getElementById('online-menu');
+            this.roomLobby = document.getElementById('room-lobby');
             this.victoryOverlay = document.getElementById('victory-overlay');
             this.announcement = document.getElementById('turn-announcement');
 
@@ -1579,6 +1604,8 @@
             this.mainMenu.classList.remove('active');
             this.setupScreen.classList.remove('active');
             this.gameScreen.classList.remove('active');
+            if (this.onlineMenu) this.onlineMenu.classList.remove('active');
+            if (this.roomLobby) this.roomLobby.classList.remove('active');
 
             switch (screenId) {
                 case 'menu':
@@ -1589,6 +1616,12 @@
                     break;
                 case 'game':
                     this.gameScreen.classList.add('active');
+                    break;
+                case 'online-menu':
+                    if (this.onlineMenu) this.onlineMenu.classList.add('active');
+                    break;
+                case 'room-lobby':
+                    if (this.roomLobby) this.roomLobby.classList.add('active');
                     break;
             }
         }
@@ -2929,6 +2962,750 @@
     }
 
     // ============================================
+    // ONLINE MULTIPLAYER - NETWORK MANAGER
+    // ============================================
+
+    // Supabase configuration - Replace with your own Supabase project credentials
+    const SUPABASE_CONFIG = {
+        url: 'YOUR_SUPABASE_URL',  // e.g., 'https://xxxx.supabase.co'
+        anonKey: 'YOUR_SUPABASE_ANON_KEY'  // Your anon/public key
+    };
+
+    class NetworkManager {
+        constructor() {
+            this.supabase = null;
+            this.isOnline = false;
+            this.isHost = false;
+            this.roomId = null;
+            this.roomCode = null;
+            this.playerId = null;
+            this.playerSlot = null;
+            this.playerName = '';
+            this.roomSubscription = null;
+            this.actionsSubscription = null;
+            this.playersSubscription = null;
+            this.applyingRemote = false;
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = 5;
+            this.heartbeatInterval = null;
+        }
+
+        async initialize() {
+            if (typeof supabase === 'undefined') {
+                console.warn('Supabase not loaded - online features disabled');
+                return false;
+            }
+
+            if (SUPABASE_CONFIG.url === 'YOUR_SUPABASE_URL') {
+                console.warn('Supabase not configured - please set your credentials in game-bundle.js');
+                this.showConfigWarning();
+                return false;
+            }
+
+            try {
+                this.supabase = supabase.createClient(
+                    SUPABASE_CONFIG.url,
+                    SUPABASE_CONFIG.anonKey
+                );
+                console.log('Supabase initialized');
+                return true;
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+                return false;
+            }
+        }
+
+        showConfigWarning() {
+            const warning = document.createElement('div');
+            warning.className = 'online-toast';
+            warning.textContent = 'Online play requires Supabase setup. See README.';
+            warning.style.background = 'rgba(255, 100, 100, 0.9)';
+            document.body.appendChild(warning);
+            setTimeout(() => warning.remove(), 4000);
+        }
+
+        generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        generatePlayerId() {
+            return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        async createRoom(playerName) {
+            if (!this.supabase) {
+                await this.initialize();
+                if (!this.supabase) return null;
+            }
+
+            this.playerName = playerName || 'Player';
+            this.playerId = this.generatePlayerId();
+            this.roomCode = this.generateRoomCode();
+            this.isHost = true;
+            this.playerSlot = 0;
+
+            try {
+                // Create room
+                const { data: room, error: roomError } = await this.supabase
+                    .from('rooms')
+                    .insert({
+                        code: this.roomCode,
+                        host_id: this.playerId,
+                        status: 'waiting',
+                        max_players: 4,
+                        game_state: null
+                    })
+                    .select()
+                    .single();
+
+                if (roomError) throw roomError;
+
+                this.roomId = room.id;
+
+                // Add host as first player
+                const { error: playerError } = await this.supabase
+                    .from('players')
+                    .insert({
+                        room_id: this.roomId,
+                        name: this.playerName,
+                        color: PLAYER_ORDER[0],
+                        slot: 0,
+                        is_host: true,
+                        is_connected: true
+                    });
+
+                if (playerError) throw playerError;
+
+                // Subscribe to room updates
+                await this.subscribeToRoom();
+
+                this.isOnline = true;
+                this.updateConnectionStatus('connected');
+                this.startHeartbeat();
+
+                console.log('Room created:', this.roomCode);
+                return this.roomCode;
+            } catch (error) {
+                console.error('Failed to create room:', error);
+                this.showToast('Failed to create room. Please try again.');
+                return null;
+            }
+        }
+
+        async joinRoom(roomCode, playerName) {
+            if (!this.supabase) {
+                await this.initialize();
+                if (!this.supabase) return null;
+            }
+
+            roomCode = roomCode.toUpperCase().trim();
+            this.playerName = playerName || 'Player';
+            this.playerId = this.generatePlayerId();
+            this.isHost = false;
+
+            try {
+                // Find room
+                const { data: room, error: roomError } = await this.supabase
+                    .from('rooms')
+                    .select('*')
+                    .eq('code', roomCode)
+                    .single();
+
+                if (roomError || !room) {
+                    this.showToast('Room not found. Check the code and try again.');
+                    return null;
+                }
+
+                if (room.status !== 'waiting') {
+                    this.showToast('Game already in progress.');
+                    return null;
+                }
+
+                this.roomId = room.id;
+                this.roomCode = roomCode;
+
+                // Get current players
+                const { data: players, error: playersError } = await this.supabase
+                    .from('players')
+                    .select('*')
+                    .eq('room_id', this.roomId);
+
+                if (playersError) throw playersError;
+
+                if (players.length >= 4) {
+                    this.showToast('Room is full.');
+                    return null;
+                }
+
+                // Find next available slot
+                const occupiedSlots = players.map(p => p.slot);
+                for (let i = 0; i < 4; i++) {
+                    if (!occupiedSlots.includes(i)) {
+                        this.playerSlot = i;
+                        break;
+                    }
+                }
+
+                // Add player
+                const { error: joinError } = await this.supabase
+                    .from('players')
+                    .insert({
+                        room_id: this.roomId,
+                        name: this.playerName,
+                        color: PLAYER_ORDER[this.playerSlot],
+                        slot: this.playerSlot,
+                        is_host: false,
+                        is_connected: true
+                    });
+
+                if (joinError) throw joinError;
+
+                // Subscribe to room updates
+                await this.subscribeToRoom();
+
+                this.isOnline = true;
+                this.updateConnectionStatus('connected');
+                this.startHeartbeat();
+
+                console.log('Joined room:', roomCode);
+                return {
+                    roomCode: this.roomCode,
+                    slot: this.playerSlot,
+                    players: players
+                };
+            } catch (error) {
+                console.error('Failed to join room:', error);
+                this.showToast('Failed to join room. Please try again.');
+                return null;
+            }
+        }
+
+        async subscribeToRoom() {
+            if (!this.supabase || !this.roomId) return;
+
+            // Subscribe to players changes
+            this.playersSubscription = this.supabase
+                .channel(`room-players-${this.roomId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'players',
+                    filter: `room_id=eq.${this.roomId}`
+                }, (payload) => {
+                    this.handlePlayerChange(payload);
+                })
+                .subscribe();
+
+            // Subscribe to room status changes
+            this.roomSubscription = this.supabase
+                .channel(`room-${this.roomId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'rooms',
+                    filter: `id=eq.${this.roomId}`
+                }, (payload) => {
+                    this.handleRoomUpdate(payload);
+                })
+                .subscribe();
+
+            // Subscribe to game actions
+            this.actionsSubscription = this.supabase
+                .channel(`room-actions-${this.roomId}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'game_actions',
+                    filter: `room_id=eq.${this.roomId}`
+                }, (payload) => {
+                    this.handleGameAction(payload);
+                })
+                .subscribe();
+        }
+
+        handlePlayerChange(payload) {
+            console.log('Player change:', payload);
+            eventBus.emit('online:playerChange', payload);
+
+            if (payload.eventType === 'INSERT') {
+                this.showToast(`${payload.new.name} joined the room`);
+            } else if (payload.eventType === 'DELETE') {
+                this.showToast(`${payload.old.name} left the room`);
+            }
+        }
+
+        handleRoomUpdate(payload) {
+            console.log('Room update:', payload);
+
+            if (payload.new.status === 'playing' && !this.isHost) {
+                // Game started by host
+                eventBus.emit('online:gameStart', payload.new);
+            }
+        }
+
+        handleGameAction(payload) {
+            if (this.applyingRemote) return;
+
+            const action = payload.new;
+            console.log('Received game action:', action);
+
+            // Don't apply our own actions
+            if (action.player_slot === this.playerSlot) return;
+
+            this.applyingRemote = true;
+
+            switch (action.action_type) {
+                case 'DICE_ROLL':
+                    eventBus.emit(GameEvents.DICE_ROLLED, action.payload);
+                    break;
+                case 'TOKEN_SELECT':
+                    eventBus.emit(GameEvents.TOKEN_SELECT, action.payload);
+                    break;
+                case 'TOKEN_MOVE':
+                    eventBus.emit('online:tokenMove', action.payload);
+                    break;
+                case 'CHAT_MESSAGE':
+                    eventBus.emit('online:chatMessage', action.payload);
+                    break;
+            }
+
+            this.applyingRemote = false;
+        }
+
+        async broadcastAction(actionType, payload) {
+            if (!this.supabase || !this.roomId || this.applyingRemote) return;
+
+            try {
+                await this.supabase
+                    .from('game_actions')
+                    .insert({
+                        room_id: this.roomId,
+                        player_slot: this.playerSlot,
+                        action_type: actionType,
+                        payload: payload
+                    });
+            } catch (error) {
+                console.error('Failed to broadcast action:', error);
+            }
+        }
+
+        async updateGameState(state) {
+            if (!this.supabase || !this.roomId) return;
+
+            try {
+                await this.supabase
+                    .from('rooms')
+                    .update({ game_state: state })
+                    .eq('id', this.roomId);
+            } catch (error) {
+                console.error('Failed to update game state:', error);
+            }
+        }
+
+        async startGame() {
+            if (!this.isHost || !this.supabase) return false;
+
+            try {
+                const { error } = await this.supabase
+                    .from('rooms')
+                    .update({ status: 'playing' })
+                    .eq('id', this.roomId);
+
+                if (error) throw error;
+
+                return true;
+            } catch (error) {
+                console.error('Failed to start game:', error);
+                return false;
+            }
+        }
+
+        async leaveRoom() {
+            if (!this.supabase || !this.roomId) return;
+
+            try {
+                // Remove player from room
+                await this.supabase
+                    .from('players')
+                    .delete()
+                    .eq('room_id', this.roomId)
+                    .eq('slot', this.playerSlot);
+
+                // If host, delete the room
+                if (this.isHost) {
+                    await this.supabase
+                        .from('rooms')
+                        .delete()
+                        .eq('id', this.roomId);
+                }
+
+                // Cleanup subscriptions
+                this.cleanup();
+
+            } catch (error) {
+                console.error('Failed to leave room:', error);
+            }
+        }
+
+        async getPlayersInRoom() {
+            if (!this.supabase || !this.roomId) return [];
+
+            try {
+                const { data, error } = await this.supabase
+                    .from('players')
+                    .select('*')
+                    .eq('room_id', this.roomId)
+                    .order('slot');
+
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('Failed to get players:', error);
+                return [];
+            }
+        }
+
+        isLocalPlayerTurn() {
+            if (!this.isOnline) return true;
+            const currentPlayer = gameState.getCurrentPlayer();
+            return currentPlayer && gameState.currentPlayerIndex === this.playerSlot;
+        }
+
+        startHeartbeat() {
+            this.heartbeatInterval = setInterval(async () => {
+                if (this.supabase && this.roomId) {
+                    try {
+                        await this.supabase
+                            .from('players')
+                            .update({ last_seen: new Date().toISOString() })
+                            .eq('room_id', this.roomId)
+                            .eq('slot', this.playerSlot);
+                    } catch (error) {
+                        console.error('Heartbeat failed:', error);
+                    }
+                }
+            }, 5000);
+        }
+
+        updateConnectionStatus(status) {
+            const indicator = document.getElementById('connection-status');
+            if (!indicator) return;
+
+            indicator.classList.remove('hidden', 'connecting', 'disconnected');
+
+            switch (status) {
+                case 'connected':
+                    indicator.querySelector('.status-text').textContent = 'Connected';
+                    break;
+                case 'connecting':
+                    indicator.classList.add('connecting');
+                    indicator.querySelector('.status-text').textContent = 'Connecting...';
+                    break;
+                case 'disconnected':
+                    indicator.classList.add('disconnected');
+                    indicator.querySelector('.status-text').textContent = 'Disconnected';
+                    break;
+            }
+        }
+
+        showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'online-toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        cleanup() {
+            this.isOnline = false;
+            this.roomId = null;
+            this.roomCode = null;
+            this.isHost = false;
+
+            if (this.heartbeatInterval) {
+                clearInterval(this.heartbeatInterval);
+                this.heartbeatInterval = null;
+            }
+
+            if (this.playersSubscription) {
+                this.playersSubscription.unsubscribe();
+                this.playersSubscription = null;
+            }
+
+            if (this.roomSubscription) {
+                this.roomSubscription.unsubscribe();
+                this.roomSubscription = null;
+            }
+
+            if (this.actionsSubscription) {
+                this.actionsSubscription.unsubscribe();
+                this.actionsSubscription = null;
+            }
+
+            const indicator = document.getElementById('connection-status');
+            if (indicator) indicator.classList.add('hidden');
+        }
+    }
+
+    // Create singleton instance
+    const networkManager = new NetworkManager();
+
+    // ============================================
+    // ONLINE LOBBY CONTROLLER
+    // ============================================
+
+    class OnlineLobbyController {
+        constructor(uiRenderer, menuController) {
+            this.uiRenderer = uiRenderer;
+            this.menuController = menuController;
+            this.refreshInterval = null;
+            this.setupEventListeners();
+        }
+
+        setupEventListeners() {
+            // Play Online button
+            document.getElementById('btn-online')?.addEventListener('click', () => {
+                this.uiRenderer.showScreen('online-menu');
+            });
+
+            // Back button from online menu
+            document.getElementById('btn-back-online')?.addEventListener('click', () => {
+                this.uiRenderer.showScreen('menu');
+            });
+
+            // Create Room button
+            document.getElementById('btn-create-room')?.addEventListener('click', async () => {
+                const nameInput = document.getElementById('online-player-name');
+                const playerName = nameInput?.value.trim() || 'Player';
+
+                if (!playerName) {
+                    networkManager.showToast('Please enter your name');
+                    return;
+                }
+
+                const btn = document.getElementById('btn-create-room');
+                btn.disabled = true;
+                btn.textContent = 'Creating...';
+
+                const roomCode = await networkManager.createRoom(playerName);
+
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">&#128640;</span> Create Room';
+
+                if (roomCode) {
+                    this.showLobby(roomCode);
+                }
+            });
+
+            // Join Room button
+            document.getElementById('btn-join-room')?.addEventListener('click', async () => {
+                const codeInput = document.getElementById('room-code-input');
+                const nameInput = document.getElementById('online-player-name');
+                const roomCode = codeInput?.value.trim();
+                const playerName = nameInput?.value.trim() || 'Player';
+
+                if (!roomCode || roomCode.length < 6) {
+                    networkManager.showToast('Please enter a valid room code');
+                    return;
+                }
+
+                if (!playerName) {
+                    networkManager.showToast('Please enter your name');
+                    return;
+                }
+
+                const btn = document.getElementById('btn-join-room');
+                btn.disabled = true;
+                btn.textContent = 'Joining...';
+
+                const result = await networkManager.joinRoom(roomCode, playerName);
+
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">&#127922;</span> Join Room';
+
+                if (result) {
+                    this.showLobby(result.roomCode);
+                }
+            });
+
+            // Copy Room Code
+            document.getElementById('btn-copy-code')?.addEventListener('click', () => {
+                const code = document.getElementById('room-code-display')?.textContent;
+                if (code) {
+                    navigator.clipboard.writeText(code).then(() => {
+                        const btn = document.getElementById('btn-copy-code');
+                        btn.classList.add('copied');
+                        btn.textContent = '✓';
+                        setTimeout(() => {
+                            btn.classList.remove('copied');
+                            btn.innerHTML = '&#128203;';
+                        }, 2000);
+                    });
+                }
+            });
+
+            // Leave Room button
+            document.getElementById('btn-leave-room')?.addEventListener('click', async () => {
+                await networkManager.leaveRoom();
+                this.hideLobby();
+                this.uiRenderer.showScreen('online-menu');
+            });
+
+            // Start Game button (host only)
+            document.getElementById('btn-start-online')?.addEventListener('click', async () => {
+                if (!networkManager.isHost) return;
+
+                const players = await networkManager.getPlayersInRoom();
+                if (players.length < 2) {
+                    networkManager.showToast('Need at least 2 players to start');
+                    return;
+                }
+
+                const started = await networkManager.startGame();
+                if (started) {
+                    this.startOnlineGame(players);
+                }
+            });
+
+            // Listen for online events
+            eventBus.on('online:playerChange', () => this.refreshLobby());
+            eventBus.on('online:gameStart', (data) => this.handleGameStart(data));
+        }
+
+        showLobby(roomCode) {
+            document.getElementById('room-code-display').textContent = roomCode;
+            this.uiRenderer.showScreen('room-lobby');
+
+            // Update start button visibility
+            const startBtn = document.getElementById('btn-start-online');
+            if (startBtn) {
+                startBtn.style.display = networkManager.isHost ? 'flex' : 'none';
+            }
+
+            this.refreshLobby();
+            this.startRefreshInterval();
+        }
+
+        hideLobby() {
+            this.stopRefreshInterval();
+        }
+
+        async refreshLobby() {
+            const players = await networkManager.getPlayersInRoom();
+            this.updateLobbyUI(players);
+        }
+
+        updateLobbyUI(players) {
+            const slots = document.querySelectorAll('.player-slot');
+            const playerCount = document.getElementById('player-count');
+            const startBtn = document.getElementById('btn-start-online');
+
+            // Reset all slots
+            slots.forEach((slot, index) => {
+                const nameEl = slot.querySelector('.slot-name');
+                const statusEl = slot.querySelector('.slot-status');
+                const hostBadge = slot.querySelector('.host-badge');
+
+                slot.classList.remove('occupied', 'is-you');
+                nameEl.textContent = 'Waiting...';
+                statusEl.textContent = 'Empty';
+                hostBadge.classList.add('hidden');
+            });
+
+            // Fill in players
+            players.forEach(player => {
+                const slot = document.querySelector(`.player-slot[data-slot="${player.slot}"]`);
+                if (slot) {
+                    const nameEl = slot.querySelector('.slot-name');
+                    const statusEl = slot.querySelector('.slot-status');
+                    const hostBadge = slot.querySelector('.host-badge');
+
+                    slot.classList.add('occupied');
+                    nameEl.textContent = player.name;
+                    statusEl.textContent = 'Ready';
+
+                    if (player.is_host) {
+                        hostBadge.classList.remove('hidden');
+                    }
+
+                    if (player.slot === networkManager.playerSlot) {
+                        slot.classList.add('is-you');
+                        statusEl.textContent = 'You';
+                    }
+                }
+            });
+
+            // Update player count
+            if (playerCount) {
+                playerCount.textContent = players.length;
+            }
+
+            // Update start button state
+            if (startBtn && networkManager.isHost) {
+                startBtn.disabled = players.length < 2;
+            }
+        }
+
+        startRefreshInterval() {
+            this.refreshInterval = setInterval(() => this.refreshLobby(), 3000);
+        }
+
+        stopRefreshInterval() {
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+                this.refreshInterval = null;
+            }
+        }
+
+        async handleGameStart(roomData) {
+            const players = await networkManager.getPlayersInRoom();
+            this.startOnlineGame(players);
+        }
+
+        startOnlineGame(players) {
+            this.stopRefreshInterval();
+
+            // Initialize game state for online play
+            gameState.reset();
+            gameState.phase = GAME_PHASE.PLAYING;
+            gameState.isOnlineGame = true;
+
+            // Setup players from lobby
+            const sortedPlayers = players.sort((a, b) => a.slot - b.slot);
+
+            gameState.players = [];
+            for (let i = 0; i < 4; i++) {
+                const lobbyPlayer = sortedPlayers.find(p => p.slot === i);
+                const playerColor = PLAYER_ORDER[i];
+
+                const player = new Player(
+                    playerColor,
+                    lobbyPlayer ? lobbyPlayer.name : `${playerColor} (AI)`,
+                    !lobbyPlayer // isAI if no player in that slot
+                );
+
+                gameState.players.push(player);
+            }
+
+            // Show game screen
+            this.uiRenderer.showScreen('game');
+
+            // Re-render board and tokens
+            eventBus.emit('online:gameReady', { players: gameState.players });
+
+            // Start the game
+            setTimeout(() => {
+                TurnManager.startGame();
+            }, 500);
+        }
+    }
+
+    // ============================================
     // INITIALIZATION
     // ============================================
 
@@ -2958,6 +3735,9 @@
         // Initialize menu controller (pass tokenRenderer for resume)
         const menuController = new MenuController(uiRenderer, tokenRenderer);
 
+        // Initialize online lobby controller
+        const onlineLobbyController = new OnlineLobbyController(uiRenderer, menuController);
+
         // Load saved profile images on startup
         menuController.loadSavedProfileImages();
 
@@ -2974,7 +3754,9 @@
             eventBus,
             TurnManager,
             AIController,
-            chatSystem
+            chatSystem,
+            networkManager,
+            onlineLobbyController
         };
 
         console.log('Space Ludo initialized!');

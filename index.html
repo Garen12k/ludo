@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="css/dice.css">
     <link rel="stylesheet" href="css/ui.css">
     <link rel="stylesheet" href="css/effects.css">
+    <link rel="stylesheet" href="css/online.css">
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <!-- Starfield Background -->
@@ -64,6 +68,10 @@
                     <span class="btn-icon">&#129302;</span>
                     Play vs AI
                 </button>
+                <button class="glass-button online-btn" id="btn-online">
+                    <span class="btn-icon">&#127760;</span>
+                    Play Online
+                </button>
                 <button class="glass-button secondary" id="btn-profiles">
                     <span class="btn-icon">&#128247;</span>
                     Player Pictures
@@ -95,6 +103,130 @@
                 <button class="glass-button" id="btn-start">Start Game</button>
             </div>
         </div>
+    </div>
+
+    <!-- Online Menu Screen -->
+    <div id="online-menu" class="screen">
+        <div class="online-container glass-panel">
+            <h2 class="online-title neon-text">Play Online</h2>
+            <p class="online-subtitle">Play with friends across the galaxy</p>
+
+            <div class="online-options">
+                <div class="online-option create-option">
+                    <div class="option-icon">&#127793;</div>
+                    <h3>Create Room</h3>
+                    <p>Start a new game and invite friends</p>
+                    <input type="text" id="online-player-name" class="online-input" placeholder="Your Name" maxlength="15">
+                    <button class="glass-button" id="btn-create-room">
+                        <span class="btn-icon">&#128640;</span>
+                        Create Room
+                    </button>
+                </div>
+
+                <div class="option-divider">
+                    <span>OR</span>
+                </div>
+
+                <div class="online-option join-option">
+                    <div class="option-icon">&#128279;</div>
+                    <h3>Join Room</h3>
+                    <p>Enter a room code to join</p>
+                    <input type="text" id="room-code-input" class="online-input" placeholder="Room Code" maxlength="6" style="text-transform: uppercase;">
+                    <button class="glass-button secondary" id="btn-join-room">
+                        <span class="btn-icon">&#127922;</span>
+                        Join Room
+                    </button>
+                </div>
+            </div>
+
+            <button class="glass-button secondary back-btn" id="btn-back-online">
+                <span class="btn-icon">&#8592;</span>
+                Back to Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- Room Lobby Screen -->
+    <div id="room-lobby" class="screen">
+        <div class="lobby-container glass-panel">
+            <div class="lobby-header">
+                <h2 class="lobby-title">Room Lobby</h2>
+                <div class="room-code-display">
+                    <span class="code-label">Room Code:</span>
+                    <span class="room-code" id="room-code-display">XXXXXX</span>
+                    <button class="copy-btn" id="btn-copy-code" title="Copy Code">&#128203;</button>
+                </div>
+            </div>
+
+            <div class="lobby-players" id="lobby-players">
+                <div class="player-slot" data-slot="0">
+                    <div class="slot-avatar red">
+                        <span class="slot-number">1</span>
+                    </div>
+                    <div class="slot-info">
+                        <span class="slot-name">Waiting...</span>
+                        <span class="slot-status">Empty</span>
+                    </div>
+                    <span class="host-badge hidden">HOST</span>
+                </div>
+                <div class="player-slot" data-slot="1">
+                    <div class="slot-avatar green">
+                        <span class="slot-number">2</span>
+                    </div>
+                    <div class="slot-info">
+                        <span class="slot-name">Waiting...</span>
+                        <span class="slot-status">Empty</span>
+                    </div>
+                    <span class="host-badge hidden">HOST</span>
+                </div>
+                <div class="player-slot" data-slot="2">
+                    <div class="slot-avatar yellow">
+                        <span class="slot-number">3</span>
+                    </div>
+                    <div class="slot-info">
+                        <span class="slot-name">Waiting...</span>
+                        <span class="slot-status">Empty</span>
+                    </div>
+                    <span class="host-badge hidden">HOST</span>
+                </div>
+                <div class="player-slot" data-slot="3">
+                    <div class="slot-avatar blue">
+                        <span class="slot-number">4</span>
+                    </div>
+                    <div class="slot-info">
+                        <span class="slot-name">Waiting...</span>
+                        <span class="slot-status">Empty</span>
+                    </div>
+                    <span class="host-badge hidden">HOST</span>
+                </div>
+            </div>
+
+            <div class="lobby-info">
+                <div class="player-count">
+                    <span id="player-count">1</span>/4 Players
+                </div>
+                <div class="lobby-status" id="lobby-status">
+                    Waiting for players...
+                </div>
+            </div>
+
+            <div class="lobby-actions">
+                <button class="glass-button" id="btn-start-online" disabled>
+                    <span class="btn-icon">&#9658;</span>
+                    Start Game
+                </button>
+                <button class="glass-button secondary" id="btn-leave-room">
+                    <span class="btn-icon">&#128682;</span>
+                    Leave Room
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status Indicator -->
+    <div id="connection-status" class="connection-indicator hidden">
+        <span class="status-dot"></span>
+        <span class="status-text">Connected</span>
     </div>
 
     <!-- Game Screen -->
