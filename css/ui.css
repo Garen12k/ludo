@@ -1548,3 +1548,43 @@
     box-shadow: 0 0 35px rgba(100, 150, 255, 0.6);
     transform: scale(1.05);
 }
+
+/* Online Toast Notifications */
+.online-toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.9), rgba(255, 100, 50, 0.8));
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    z-index: 1000;
+    animation: toastSlideIn 0.3s ease-out, toastFadeOut 0.5s ease-in 2.5s forwards;
+    box-shadow: 0 4px 20px rgba(255, 100, 50, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
+    max-width: 90%;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}

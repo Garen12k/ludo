@@ -3345,7 +3345,72 @@
             if (payload.eventType === 'INSERT') {
                 this.showToast(`${payload.new.name} joined the room`);
             } else if (payload.eventType === 'DELETE') {
-                this.showToast(`${payload.old.name} left the room`);
+                const leftPlayer = payload.old;
+                this.showToast(`${leftPlayer.name} left the game`);
+
+                // If game is in progress, convert the player to AI
+                if (gameState.phase === GAME_PHASE.PLAYING && leftPlayer.slot !== undefined) {
+                    this.convertPlayerToAI(leftPlayer.slot, leftPlayer.name);
+                }
+            } else if (payload.eventType === 'UPDATE' && payload.new.is_connected === false) {
+                // Player disconnected but didn't leave yet
+                const disconnectedPlayer = payload.new;
+                this.showToast(`${disconnectedPlayer.name} disconnected`);
+
+                // Convert to AI after a short delay if still disconnected
+                if (gameState.phase === GAME_PHASE.PLAYING && disconnectedPlayer.slot !== undefined) {
+                    setTimeout(() => {
+                        // Check if player is still disconnected
+                        const player = gameState.players[disconnectedPlayer.slot];
+                        if (player && !player.isAI) {
+                            this.convertPlayerToAI(disconnectedPlayer.slot, disconnectedPlayer.name);
+                        }
+                    }, 5000); // 5 second grace period
+                }
+            }
+        }
+
+        convertPlayerToAI(playerSlot, playerName) {
+            const player = gameState.players[playerSlot];
+            if (!player || player.isAI) return; // Already AI or doesn't exist
+
+            console.log(`Converting player ${playerSlot} (${playerName}) to AI`);
+
+            // Convert player to AI
+            player.isAI = true;
+            player.aiDifficulty = 'MEDIUM';
+            player.name = `${playerName} (AI)`;
+
+            // Show notification
+            eventBus.emit(GameEvents.SHOW_MESSAGE, {
+                message: `${playerName} left - AI taking over`,
+                type: 'warning'
+            });
+
+            // Update the player name display in UI
+            const playerInfo = document.querySelector(`.player-info[data-player="${playerSlot}"]`);
+            if (playerInfo) {
+                const nameEl = playerInfo.querySelector('.player-name');
+                if (nameEl) {
+                    nameEl.textContent = player.name;
+                }
+            }
+
+            // If it's this player's turn and we're the host, trigger AI turn
+            if (gameState.currentPlayerIndex === playerSlot && this.isHost) {
+                console.log('Triggering AI turn for converted player');
+                setTimeout(async () => {
+                    if (gameState.turnPhase === TURN_PHASE.WAITING) {
+                        await TurnManager.handleAITurn();
+                    } else if (gameState.turnPhase === TURN_PHASE.SELECTING) {
+                        // AI needs to select a token
+                        const validMoves = gameState.validMoves;
+                        if (validMoves && validMoves.length > 0) {
+                            const move = await AIController.selectMove(validMoves, gameState);
+                            await TurnManager.executeMove(move);
+                        }
+                    }
+                }, 1000);
             }
         }
 
