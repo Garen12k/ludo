@@ -927,8 +927,8 @@
     // DICE
     // ============================================
 
-    // Global counter to track rolls without a 6
-    let globalRollsWithoutSix = 0;
+    // Dice System - Fair random with 16.67% (1/6) chance for each number
+    // Based on standard dice probability: https://www.statisticshowto.com/probability-and-statistics/probability-main-index/dice-roll-probability-6-sided-dice/
 
     const Dice = {
         value: null,
@@ -940,30 +940,11 @@
                 eventBus.emit(GameEvents.DICE_ROLL_START, {});
 
                 setTimeout(() => {
-                    // Guarantee 6 on third roll if no 6 in last 2 rolls
-                    if (globalRollsWithoutSix >= 2) {
-                        this.value = 6;
-                        globalRollsWithoutSix = 0;
-                        console.log('Guaranteed 6! Counter reset.');
-                    } else {
-                        // Weighted dice - 6 appears 50% of the time
-                        const rand = Math.random() * 100;
-                        if (rand < 10) this.value = 1;
-                        else if (rand < 20) this.value = 2;
-                        else if (rand < 30) this.value = 3;
-                        else if (rand < 40) this.value = 4;
-                        else if (rand < 50) this.value = 5;
-                        else this.value = 6;  // 50% chance
+                    // Fair dice roll - each number has exactly 16.67% (1/6) probability
+                    // This matches real-world dice where P(any number) = 1/6
+                    this.value = Math.floor(Math.random() * 6) + 1;
 
-                        // Update counter
-                        if (this.value === 6) {
-                            globalRollsWithoutSix = 0;
-                            console.log('Rolled 6! Counter reset.');
-                        } else {
-                            globalRollsWithoutSix++;
-                            console.log('Rolled ' + this.value + '. Rolls without 6: ' + globalRollsWithoutSix);
-                        }
-                    }
+                    console.log('Dice rolled: ' + this.value + ' (fair 16.67% probability)');
 
                     this.isRolling = false;
                     resolve(this.value);
