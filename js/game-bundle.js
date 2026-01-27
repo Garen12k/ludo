@@ -1284,6 +1284,14 @@
         },
 
         async endTurn() {
+            // Broadcast turn end in online mode (only from the active player)
+            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+                networkManager.broadcastAction('TURN_END', {
+                    playerIndex: gameState.currentPlayerIndex,
+                    nextPlayerIndex: (gameState.currentPlayerIndex + 1) % gameState.players.length
+                });
+            }
+
             gameState.nextTurn();
             Dice.reset();
             // Auto-save after each turn
@@ -2926,7 +2934,14 @@
             const text = quickMsg || this.chatInput?.value.trim();
             if (!text) return;
 
-            const player = gameState.getCurrentPlayer();
+            // In online mode, use the local player; otherwise use current turn player
+            let player;
+            if (gameState.isOnlineGame && networkManager && networkManager.playerSlot !== undefined) {
+                player = gameState.players[networkManager.playerSlot];
+            } else {
+                player = gameState.getCurrentPlayer();
+            }
+
             if (!player) {
                 this.addSystemMessage('Start a game to chat!');
                 return;
@@ -3287,10 +3302,10 @@
 
             switch (action.action_type) {
                 case 'DICE_ROLL':
-                    eventBus.emit(GameEvents.DICE_ROLLED, action.payload);
+                    this.handleRemoteDiceRoll(action.payload);
                     break;
                 case 'TOKEN_SELECT':
-                    eventBus.emit(GameEvents.TOKEN_SELECT, action.payload);
+                    this.handleRemoteTokenSelect(action.payload);
                     break;
                 case 'TOKEN_MOVE':
                     eventBus.emit('online:tokenMove', action.payload);
@@ -3298,9 +3313,122 @@
                 case 'CHAT_MESSAGE':
                     eventBus.emit('online:chatMessage', action.payload);
                     break;
+                case 'TURN_END':
+                    this.handleRemoteTurnEnd(action.payload);
+                    break;
             }
 
             this.applyingRemote = false;
+        }
+
+        handleRemoteDiceRoll(payload) {
+            const { value, playerIndex, consecutiveSixes } = payload;
+            console.log('Remote dice roll:', value, 'by player', playerIndex);
+
+            // Update game state with the dice value
+            gameState.diceValue = value;
+            gameState.consecutiveSixes = consecutiveSixes || 0;
+            gameState.turnPhase = TURN_PHASE.ROLLING;
+
+            // Emit dice rolled event for UI to show the result
+            eventBus.emit(GameEvents.DICE_ROLLED, { value });
+
+            // Check for forfeited turn (three 6s)
+            if (gameState.isTurnForfeited()) {
+                eventBus.emit(GameEvents.SHOW_MESSAGE, {
+                    message: 'Three 6s! Turn forfeited!',
+                    type: 'warning'
+                });
+                // The remote client will handle ending the turn
+                return;
+            }
+
+            // Calculate valid moves for display
+            const validMoves = Rules.getValidMoves(
+                gameState.getCurrentPlayer(),
+                value,
+                gameState.players
+            );
+            gameState.setValidMoves(validMoves);
+
+            if (validMoves.length === 0) {
+                eventBus.emit(GameEvents.SHOW_MESSAGE, {
+                    message: 'No valid moves!',
+                    type: 'info'
+                });
+                // Remote will handle ending turn
+            } else {
+                gameState.turnPhase = TURN_PHASE.SELECTING;
+            }
+        }
+
+        handleRemoteTokenSelect(payload) {
+            const { tokenId, playerIndex } = payload;
+            console.log('Remote token select:', tokenId, 'by player', playerIndex);
+
+            // Find the move
+            const move = gameState.validMoves.find(m => m.tokenId === tokenId);
+            if (!move) {
+                console.warn('Could not find valid move for token:', tokenId);
+                return;
+            }
+
+            // Execute the move locally
+            gameState.turnPhase = TURN_PHASE.MOVING;
+            gameState.selectToken(move.tokenId);
+
+            eventBus.emit(GameEvents.TOKEN_MOVE_START, { move });
+
+            const result = Rules.executeMove(move);
+
+            eventBus.emit(GameEvents.TOKEN_MOVE, { move, result });
+
+            if (result.captured) {
+                eventBus.emit(GameEvents.TOKEN_CAPTURE, {
+                    capturer: move.token,
+                    captured: result.captured
+                });
+                eventBus.emit(GameEvents.EFFECT_SHAKE, { intensity: 10 });
+            }
+
+            if (result.finished) {
+                eventBus.emit(GameEvents.TOKEN_FINISH, {
+                    token: move.token,
+                    player: gameState.getCurrentPlayer()
+                });
+            }
+
+            // Check for win
+            if (Rules.hasWon(gameState.getCurrentPlayer())) {
+                gameState.setWinner(gameState.getCurrentPlayer());
+                eventBus.emit(GameEvents.EFFECT_VICTORY, {
+                    winner: gameState.getCurrentPlayer()
+                });
+                return;
+            }
+
+            eventBus.emit(GameEvents.TOKEN_MOVE_COMPLETE, { move, result });
+
+            // Handle extra turn or end turn
+            if (result.extraTurn || gameState.canRollAgain()) {
+                gameState.turnPhase = TURN_PHASE.WAITING;
+                gameState.selectToken(null);
+                gameState.setValidMoves([]);
+            }
+            // Note: endTurn will be called by the active player's client
+        }
+
+        handleRemoteTurnEnd(payload) {
+            const { nextPlayerIndex } = payload;
+            console.log('Remote turn end, next player:', nextPlayerIndex);
+
+            gameState.nextTurn();
+            Dice.reset();
+
+            // Start the new turn
+            setTimeout(async () => {
+                await TurnManager.startTurn();
+            }, ANIMATION_DURATIONS.TURN_DELAY);
         }
 
         async broadcastAction(actionType, payload) {
