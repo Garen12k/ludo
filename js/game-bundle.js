@@ -2624,9 +2624,25 @@
                 this.hideProfileModal();
             });
 
+            // Reset all profiles button
+            document.getElementById('btn-reset-all-profiles')?.addEventListener('click', () => {
+                this.resetAllProfiles();
+            });
+
+            // Individual reset profile buttons
+            document.querySelectorAll('.reset-profile-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Don't trigger the profile-item click
+                    const playerIndex = parseInt(btn.dataset.player);
+                    this.resetProfile(playerIndex);
+                });
+            });
+
             // Profile picture selection
             document.querySelectorAll('.profile-item').forEach(item => {
-                item.addEventListener('click', () => {
+                item.addEventListener('click', (e) => {
+                    // Don't trigger if clicking the reset button
+                    if (e.target.classList.contains('reset-profile-btn')) return;
                     const playerIndex = item.dataset.player;
                     const input = document.getElementById(`profile-input-${playerIndex}`);
                     input?.click();
@@ -2813,6 +2829,43 @@
             } catch (e) {
                 console.error('Failed to load profile images:', e);
             }
+        }
+
+        resetProfile(playerIndex) {
+            try {
+                // Remove from localStorage
+                const profiles = JSON.parse(localStorage.getItem('spaceLudoProfiles') || '{}');
+                delete profiles[playerIndex];
+                localStorage.setItem('spaceLudoProfiles', JSON.stringify(profiles));
+
+                // Reset modal preview
+                const modalImg = document.getElementById(`profile-img-${playerIndex}`);
+                if (modalImg) {
+                    modalImg.src = '';
+                    modalImg.classList.remove('loaded');
+                }
+
+                // Reset game avatar
+                const gameAvatar = document.querySelector(`.player-info[data-player="${playerIndex}"] .profile-pic`);
+                if (gameAvatar) {
+                    gameAvatar.src = '';
+                    gameAvatar.classList.remove('loaded');
+                    gameAvatar.style.display = 'none';
+                }
+
+                console.log(`Profile ${playerIndex} reset to default`);
+            } catch (e) {
+                console.error('Failed to reset profile:', e);
+            }
+        }
+
+        resetAllProfiles() {
+            for (let i = 0; i < 4; i++) {
+                this.resetProfile(i);
+            }
+            // Clear all from localStorage at once
+            localStorage.removeItem('spaceLudoProfiles');
+            console.log('All profiles reset to default');
         }
 
         startGame() {
@@ -3316,6 +3369,9 @@
                 case 'TURN_END':
                     this.handleRemoteTurnEnd(action.payload);
                     break;
+                case 'PROFILE_SYNC':
+                    this.handleRemoteProfileSync(action.payload);
+                    break;
             }
 
             this.applyingRemote = false;
@@ -3429,6 +3485,52 @@
             setTimeout(async () => {
                 await TurnManager.startTurn();
             }, ANIMATION_DURATIONS.TURN_DELAY);
+        }
+
+        handleRemoteProfileSync(payload) {
+            const { playerSlot, profileData, playerName } = payload;
+            console.log('Received profile sync for player', playerSlot);
+
+            // Update the game avatar for this player
+            const gameAvatar = document.querySelector(`.player-info[data-player="${playerSlot}"] .profile-pic`);
+            if (gameAvatar && profileData) {
+                gameAvatar.src = profileData;
+                gameAvatar.classList.add('loaded');
+                gameAvatar.style.display = 'block';
+            }
+
+            // Also update lobby avatar if in lobby
+            const lobbySlot = document.querySelector(`.player-slot[data-slot="${playerSlot}"] .slot-avatar`);
+            if (lobbySlot && profileData) {
+                // Create or update an img element in the lobby slot
+                let lobbyImg = lobbySlot.querySelector('.lobby-profile-img');
+                if (!lobbyImg) {
+                    lobbyImg = document.createElement('img');
+                    lobbyImg.className = 'lobby-profile-img';
+                    lobbyImg.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover; position: absolute; top: 0; left: 0;';
+                    lobbySlot.style.position = 'relative';
+                    lobbySlot.appendChild(lobbyImg);
+                }
+                lobbyImg.src = profileData;
+            }
+        }
+
+        broadcastProfile() {
+            // Get local player's profile from localStorage
+            try {
+                const profiles = JSON.parse(localStorage.getItem('spaceLudoProfiles') || '{}');
+                const myProfile = profiles[this.playerSlot];
+
+                if (myProfile) {
+                    this.broadcastAction('PROFILE_SYNC', {
+                        playerSlot: this.playerSlot,
+                        profileData: myProfile,
+                        playerName: this.playerName
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to broadcast profile:', e);
+            }
         }
 
         async broadcastAction(actionType, payload) {
@@ -3743,6 +3845,13 @@
 
             this.refreshLobby();
             this.startRefreshInterval();
+
+            // Broadcast our profile picture to other players in lobby
+            setTimeout(() => {
+                if (networkManager && networkManager.isOnline) {
+                    networkManager.broadcastProfile();
+                }
+            }, 1000);
         }
 
         hideLobby() {
@@ -3860,6 +3969,9 @@
             // Show game screen
             this.uiRenderer.showScreen('game');
 
+            // Load and apply local player's profile to game UI
+            this.applyLocalProfileToGame();
+
             // Re-render board and tokens
             eventBus.emit('online:gameReady', { players: gameState.players });
 
@@ -3870,7 +3982,32 @@
                     mode: 'online'
                 });
                 TurnManager.startTurn();
+
+                // Broadcast our profile to other players after game starts
+                if (networkManager && networkManager.isOnline) {
+                    networkManager.broadcastProfile();
+                }
             }, 500);
+        }
+
+        applyLocalProfileToGame() {
+            // Apply the local player's saved profile picture to the game UI
+            try {
+                const profiles = JSON.parse(localStorage.getItem('spaceLudoProfiles') || '{}');
+                const mySlot = networkManager ? networkManager.playerSlot : 0;
+                const myProfile = profiles[mySlot];
+
+                if (myProfile) {
+                    const gameAvatar = document.querySelector(`.player-info[data-player="${mySlot}"] .profile-pic`);
+                    if (gameAvatar) {
+                        gameAvatar.src = myProfile;
+                        gameAvatar.classList.add('loaded');
+                        gameAvatar.style.display = 'block';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to apply local profile:', e);
+            }
         }
     }
 
