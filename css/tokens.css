@@ -1,0 +1,296 @@
+/* Tokens CSS - UFO Token Styles and Animations */
+
+/* UFO Token Base */
+.ufo-token {
+    width: 85%;
+    height: 85%;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    z-index: 10;
+}
+
+/* UFO Body - Saucer Shape */
+.ufo-token .ufo-body {
+    position: absolute;
+    width: 100%;
+    height: 40%;
+    top: 35%;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+/* UFO Dome */
+.ufo-token .ufo-dome {
+    position: absolute;
+    width: 50%;
+    height: 45%;
+    top: 8%;
+    left: 25%;
+    border-radius: 50% 50% 40% 40%;
+    transition: all 0.3s ease;
+}
+
+/* UFO Lights - Bottom ring */
+.ufo-token .ufo-lights {
+    position: absolute;
+    width: 70%;
+    height: 15%;
+    bottom: 20%;
+    left: 15%;
+    border-radius: 50%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10%;
+}
+
+.ufo-token .ufo-light {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    animation: ufoLightBlink 0.8s ease-in-out infinite;
+}
+
+.ufo-token .ufo-light:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.ufo-token .ufo-light:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes ufoLightBlink {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Color Variants */
+.ufo-token.red .ufo-body {
+    background: linear-gradient(to bottom, #ff6699, #ff3366, #cc2952);
+    box-shadow: 0 4px 15px rgba(255, 51, 102, 0.6);
+}
+
+.ufo-token.red .ufo-dome {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 150, 180, 0.6));
+}
+
+.ufo-token.red {
+    filter: drop-shadow(0 0 8px #ff3366);
+}
+
+.ufo-token.green .ufo-body {
+    background: linear-gradient(to bottom, #66ff99, #33ff66, #29cc52);
+    box-shadow: 0 4px 15px rgba(51, 255, 102, 0.6);
+}
+
+.ufo-token.green .ufo-dome {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(150, 255, 180, 0.6));
+}
+
+.ufo-token.green {
+    filter: drop-shadow(0 0 8px #33ff66);
+}
+
+.ufo-token.yellow .ufo-body {
+    background: linear-gradient(to bottom, #ffff66, #ffff33, #cccc29);
+    box-shadow: 0 4px 15px rgba(255, 255, 51, 0.6);
+}
+
+.ufo-token.yellow .ufo-dome {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 180, 0.6));
+}
+
+.ufo-token.yellow {
+    filter: drop-shadow(0 0 8px #ffff33);
+}
+
+.ufo-token.blue .ufo-body {
+    background: linear-gradient(to bottom, #6699ff, #3366ff, #2952cc);
+    box-shadow: 0 4px 15px rgba(51, 102, 255, 0.6);
+}
+
+.ufo-token.blue .ufo-dome {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(150, 180, 255, 0.6));
+}
+
+.ufo-token.blue {
+    filter: drop-shadow(0 0 8px #3366ff);
+}
+
+/* Hover State */
+.ufo-token:hover {
+    transform: scale(1.2) translateY(-5px);
+}
+
+.ufo-token.red:hover {
+    filter: drop-shadow(0 0 15px #ff3366) brightness(1.2);
+}
+
+.ufo-token.green:hover {
+    filter: drop-shadow(0 0 15px #33ff66) brightness(1.2);
+}
+
+.ufo-token.yellow:hover {
+    filter: drop-shadow(0 0 15px #ffff33) brightness(1.2);
+}
+
+.ufo-token.blue:hover {
+    filter: drop-shadow(0 0 15px #3366ff) brightness(1.2);
+}
+
+/* Selectable State - When it's player's turn */
+.ufo-token.selectable {
+    animation: ufoSelectable 1.2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+@keyframes ufoSelectable {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        transform: scale(1.1) translateY(-3px);
+    }
+}
+
+.ufo-token.selectable.red {
+    animation: ufoSelectableRed 1.2s ease-in-out infinite;
+}
+
+@keyframes ufoSelectableRed {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px #ff3366);
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        filter: drop-shadow(0 0 20px #ff3366) brightness(1.3);
+        transform: scale(1.1) translateY(-3px);
+    }
+}
+
+.ufo-token.selectable.green {
+    animation: ufoSelectableGreen 1.2s ease-in-out infinite;
+}
+
+@keyframes ufoSelectableGreen {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px #33ff66);
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        filter: drop-shadow(0 0 20px #33ff66) brightness(1.3);
+        transform: scale(1.1) translateY(-3px);
+    }
+}
+
+.ufo-token.selectable.yellow {
+    animation: ufoSelectableYellow 1.2s ease-in-out infinite;
+}
+
+@keyframes ufoSelectableYellow {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px #ffff33);
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        filter: drop-shadow(0 0 20px #ffff33) brightness(1.3);
+        transform: scale(1.1) translateY(-3px);
+    }
+}
+
+.ufo-token.selectable.blue {
+    animation: ufoSelectableBlue 1.2s ease-in-out infinite;
+}
+
+@keyframes ufoSelectableBlue {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px #3366ff);
+        transform: scale(1) translateY(0);
+    }
+    50% {
+        filter: drop-shadow(0 0 20px #3366ff) brightness(1.3);
+        transform: scale(1.1) translateY(-3px);
+    }
+}
+
+/* Selected State */
+.ufo-token.selected {
+    transform: scale(1.15);
+    z-index: 20;
+}
+
+/* Moving Animation */
+.ufo-token.moving {
+    animation: ufoMove 0.4s ease-in-out;
+    z-index: 30;
+}
+
+@keyframes ufoMove {
+    0% { transform: scale(1) translateY(0); }
+    30% { transform: scale(1.2) translateY(-15px); }
+    70% { transform: scale(1.2) translateY(-15px); }
+    100% { transform: scale(1) translateY(0); }
+}
+
+/* Captured Animation */
+.ufo-token.captured {
+    animation: ufoCaptured 0.6s ease-out forwards;
+}
+
+@keyframes ufoCaptured {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5) rotate(180deg); opacity: 0.5; }
+    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+/* Entering Board Animation */
+.ufo-token.entering {
+    animation: ufoEnter 0.5s ease-out;
+}
+
+@keyframes ufoEnter {
+    0% { transform: scale(0) translateY(-30px); opacity: 0; }
+    60% { transform: scale(1.2) translateY(5px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Finished Animation */
+.ufo-token.finished {
+    animation: ufoFinished 1s ease-in-out infinite;
+}
+
+@keyframes ufoFinished {
+    0%, 100% { transform: scale(0.9) rotate(-5deg); }
+    50% { transform: scale(1) rotate(5deg); }
+}
+
+/* Token in Home Base */
+.home-slot .ufo-token {
+    width: 80%;
+    height: 80%;
+}
+
+/* Multiple tokens on same cell - Stacking */
+.board-cell .ufo-token:nth-child(2) {
+    position: absolute;
+    transform: translate(15%, -15%) scale(0.85);
+}
+
+.board-cell .ufo-token:nth-child(3) {
+    position: absolute;
+    transform: translate(-15%, 15%) scale(0.85);
+}
+
+.board-cell .ufo-token:nth-child(4) {
+    position: absolute;
+    transform: translate(15%, 15%) scale(0.85);
+}
+
+/* Disabled token */
+.ufo-token.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

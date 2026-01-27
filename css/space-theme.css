@@ -1,0 +1,209 @@
+/* Space Theme CSS - Galaxy Background and Nebula Effects */
+
+body {
+    background: linear-gradient(
+        135deg,
+        #1a1a3e 0%,
+        #2d1f4e 25%,
+        #1e3a5f 50%,
+        #2d1f4e 75%,
+        #1a1a3e 100%
+    );
+    background-size: 400% 400%;
+    animation: galaxyShift 60s ease infinite;
+}
+
+@keyframes galaxyShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Starfield Container */
+.starfield {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Star Layers - Multiple depths for parallax effect */
+.stars-layer {
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat;
+}
+
+.stars-layer-1 {
+    background-image:
+        radial-gradient(3px 3px at 20px 30px, #fff, transparent),
+        radial-gradient(3px 3px at 40px 70px, rgba(255,255,255,1), transparent),
+        radial-gradient(2px 2px at 90px 40px, #fff, transparent),
+        radial-gradient(3px 3px at 130px 80px, rgba(255,255,255,0.95), transparent),
+        radial-gradient(2px 2px at 160px 120px, #fff, transparent),
+        radial-gradient(3px 3px at 200px 50px, rgba(255,255,255,0.9), transparent),
+        radial-gradient(2px 2px at 60px 100px, #fff, transparent),
+        radial-gradient(3px 3px at 100px 150px, rgba(255,255,255,1), transparent),
+        radial-gradient(2px 2px at 180px 20px, #fff, transparent),
+        radial-gradient(3px 3px at 220px 130px, rgba(255,255,255,0.95), transparent),
+        radial-gradient(2px 2px at 50px 180px, #fff, transparent),
+        radial-gradient(3px 3px at 140px 10px, rgba(255,255,255,0.9), transparent),
+        radial-gradient(4px 4px at 75px 65px, rgba(255,220,100,0.9), transparent),
+        radial-gradient(4px 4px at 185px 95px, rgba(100,200,255,0.9), transparent);
+    background-size: 250px 200px;
+    animation: twinkle 4s ease-in-out infinite;
+}
+
+.stars-layer-2 {
+    background-image:
+        radial-gradient(2px 2px at 50px 50px, rgba(255,255,255,0.9), transparent),
+        radial-gradient(2px 2px at 120px 90px, rgba(255,255,255,0.95), transparent),
+        radial-gradient(3px 3px at 180px 140px, rgba(200,200,255,0.8), transparent),
+        radial-gradient(2px 2px at 30px 170px, rgba(255,255,255,0.9), transparent),
+        radial-gradient(2px 2px at 250px 30px, rgba(255,255,255,0.95), transparent),
+        radial-gradient(3px 3px at 80px 220px, rgba(200,200,255,0.8), transparent),
+        radial-gradient(2px 2px at 200px 180px, rgba(255,255,255,0.9), transparent),
+        radial-gradient(2px 2px at 150px 60px, rgba(255,255,255,0.95), transparent),
+        radial-gradient(3px 3px at 280px 120px, rgba(255,150,200,0.8), transparent),
+        radial-gradient(3px 3px at 100px 250px, rgba(150,255,200,0.8), transparent);
+    background-size: 300px 280px;
+    animation: twinkle 6s ease-in-out infinite reverse;
+    opacity: 0.9;
+}
+
+.stars-layer-3 {
+    background-image:
+        radial-gradient(2px 2px at 100px 100px, rgba(200,200,255,0.7), transparent),
+        radial-gradient(2px 2px at 250px 150px, rgba(200,200,255,0.8), transparent),
+        radial-gradient(2px 2px at 50px 200px, rgba(200,200,255,0.7), transparent),
+        radial-gradient(2px 2px at 300px 50px, rgba(200,200,255,0.8), transparent),
+        radial-gradient(2px 2px at 180px 250px, rgba(200,200,255,0.7), transparent),
+        radial-gradient(2px 2px at 350px 200px, rgba(200,200,255,0.8), transparent),
+        radial-gradient(2px 2px at 150px 300px, rgba(255,200,150,0.7), transparent),
+        radial-gradient(2px 2px at 400px 100px, rgba(150,200,255,0.8), transparent);
+    background-size: 400px 350px;
+    animation: twinkle 8s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Nebula Effects */
+.nebula {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+.nebula-1 {
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, #ff3366 0%, #ff6699 30%, transparent 70%);
+    top: -250px;
+    right: -150px;
+    animation: nebulaDrift1 30s ease-in-out infinite;
+}
+
+.nebula-2 {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, #3366ff 0%, #6699ff 30%, transparent 70%);
+    bottom: -200px;
+    left: -100px;
+    animation: nebulaDrift2 35s ease-in-out infinite;
+}
+
+.nebula-3 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, #33ff99 0%, #66ffcc 30%, transparent 70%);
+    top: 40%;
+    left: 30%;
+    animation: nebulaDrift3 40s ease-in-out infinite;
+    opacity: 0.15;
+}
+
+.nebula-4 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, #ffcc33 0%, #ffdd66 30%, transparent 70%);
+    bottom: 30%;
+    right: 20%;
+    animation: nebulaDrift1 45s ease-in-out infinite reverse;
+    opacity: 0.12;
+}
+
+@keyframes nebulaDrift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, 50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes nebulaDrift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-40px, -30px) scale(1.05); }
+    66% { transform: translate(20px, -50px) scale(1.1); }
+}
+
+@keyframes nebulaDrift3 {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+    50% { transform: translate(50px, 30px) scale(1.15); opacity: 0.2; }
+}
+
+/* Additional Space Accents */
+.shooting-star {
+    position: fixed;
+    width: 150px;
+    height: 2px;
+    background: linear-gradient(90deg, #fff, transparent);
+    transform: rotate(-45deg);
+    animation: shootingStar 3s linear infinite;
+    opacity: 0;
+}
+
+@keyframes shootingStar {
+    0% {
+        transform: translateX(-200px) translateY(-200px) rotate(-45deg);
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    30% {
+        transform: translateX(calc(100vw + 200px)) translateY(calc(100vh + 200px)) rotate(-45deg);
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Neon Glow Variations */
+.glow-red {
+    box-shadow: 0 0 20px #ff3366, 0 0 40px rgba(255, 51, 102, 0.4);
+}
+
+.glow-green {
+    box-shadow: 0 0 20px #33ff66, 0 0 40px rgba(51, 255, 102, 0.4);
+}
+
+.glow-yellow {
+    box-shadow: 0 0 20px #ffff33, 0 0 40px rgba(255, 255, 51, 0.4);
+}
+
+.glow-blue {
+    box-shadow: 0 0 20px #3366ff, 0 0 40px rgba(51, 102, 255, 0.4);
+}
+
+/* Space Border Effect */
+.space-border {
+    border: 2px solid rgba(100, 100, 255, 0.3);
+    box-shadow:
+        0 0 15px rgba(100, 100, 255, 0.2),
+        inset 0 0 15px rgba(100, 100, 255, 0.1);
+}

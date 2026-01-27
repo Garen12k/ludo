@@ -1,0 +1,19 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project specific
+.claude/
+node_modules/
+.env
+.env.local
+
+# Logs
+*.log

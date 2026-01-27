@@ -1,0 +1,386 @@
+/* Effects CSS - Particles, Screen Shake, and Celebrations */
+
+/* Screen Shake Effect */
+.screen-shake {
+    animation: screenShake 0.5s ease-out;
+}
+
+@keyframes screenShake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-10px, -5px); }
+    20% { transform: translate(10px, 5px); }
+    30% { transform: translate(-8px, 3px); }
+    40% { transform: translate(8px, -3px); }
+    50% { transform: translate(-5px, 5px); }
+    60% { transform: translate(5px, -5px); }
+    70% { transform: translate(-3px, 2px); }
+    80% { transform: translate(3px, -2px); }
+    90% { transform: translate(-1px, 1px); }
+}
+
+/* Screen Flash */
+.screen-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    animation: flashOut 0.3s ease-out forwards;
+}
+
+@keyframes flashOut {
+    0% { opacity: 0.6; }
+    100% { opacity: 0; }
+}
+
+.screen-flash.white { background: #fff; }
+.screen-flash.red { background: #ff3366; }
+.screen-flash.green { background: #33ff66; }
+.screen-flash.yellow { background: #ffff33; }
+.screen-flash.blue { background: #3366ff; }
+
+/* Capture Effect - Explosion burst */
+.capture-effect {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.capture-burst {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: burstExpand 0.5s ease-out forwards;
+}
+
+@keyframes burstExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(8);
+        opacity: 0;
+    }
+}
+
+.capture-burst.red { background: radial-gradient(circle, #ff3366, transparent); }
+.capture-burst.green { background: radial-gradient(circle, #33ff66, transparent); }
+.capture-burst.yellow { background: radial-gradient(circle, #ffff33, transparent); }
+.capture-burst.blue { background: radial-gradient(circle, #3366ff, transparent); }
+
+/* Particle Ring Effect */
+.particle-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border: 3px solid currentColor;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: ringExpand 0.6s ease-out forwards;
+}
+
+@keyframes ringExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(5);
+        opacity: 0;
+    }
+}
+
+/* Star Burst Effect */
+.star-burst {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -50%);
+}
+
+.star-burst::before,
+.star-burst::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 30px;
+    background: currentColor;
+    transform-origin: center;
+    animation: starSpin 0.5s ease-out forwards;
+}
+
+.star-burst::before {
+    transform: rotate(0deg);
+}
+
+.star-burst::after {
+    transform: rotate(90deg);
+}
+
+@keyframes starSpin {
+    0% {
+        opacity: 1;
+        transform: scale(0) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(3) rotate(180deg);
+    }
+}
+
+/* Glow Pulse Effect */
+.glow-pulse {
+    animation: glowPulse 0.8s ease-out;
+}
+
+@keyframes glowPulse {
+    0% {
+        box-shadow: 0 0 0 0 currentColor;
+    }
+    50% {
+        box-shadow: 0 0 30px 15px currentColor;
+    }
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+/* Confetti Particle Styles (for CSS-only fallback) */
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    top: -10px;
+    animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti.rect {
+    width: 8px;
+    height: 16px;
+    border-radius: 2px;
+}
+
+.confetti.circle {
+    border-radius: 50%;
+}
+
+/* Victory Rays */
+.victory-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 150px;
+    background: linear-gradient(to top, transparent, rgba(255, 255, 51, 0.8));
+    transform-origin: bottom center;
+    animation: rayRotate 3s linear infinite;
+}
+
+@keyframes rayRotate {
+    0% { transform: translateX(-50%) rotate(0deg); }
+    100% { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* Token Trail Effect */
+.token-trail {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: trailFade 0.3s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes trailFade {
+    0% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Hover Highlight */
+.hover-highlight {
+    position: relative;
+}
+
+.hover-highlight::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    background: transparent;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.hover-highlight:hover::after {
+    border-color: rgba(100, 100, 255, 0.5);
+    box-shadow: 0 0 15px rgba(100, 100, 255, 0.3);
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #6699ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Ripple Effect */
+.ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.ripple:active::after {
+    width: 200px;
+    height: 200px;
+}
+
+/* Score Pop Effect */
+.score-pop {
+    position: absolute;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #33ff66;
+    text-shadow: 0 0 10px rgba(51, 255, 102, 0.8);
+    animation: scorePop 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes scorePop {
+    0% {
+        transform: translateY(0) scale(0.5);
+        opacity: 0;
+    }
+    20% {
+        transform: translateY(-20px) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-60px) scale(1);
+        opacity: 0;
+    }
+}
+
+/* Danger Warning */
+.danger-warning {
+    animation: dangerPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes dangerPulse {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(255, 51, 102, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 51, 102, 0.8);
+    }
+}
+
+/* Transition Classes */
+.slide-in-left {
+    animation: slideInLeft 0.5s ease forwards;
+}
+
+@keyframes slideInLeft {
+    0% {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.5s ease forwards;
+}
+
+@keyframes slideInRight {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.bounce-in {
+    animation: bounceIn 0.6s ease forwards;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

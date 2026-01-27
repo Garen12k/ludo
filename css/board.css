@@ -1,0 +1,302 @@
+/* Board CSS - Ludo Board Grid Layout */
+
+/* Board Wrapper */
+.board-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Main Ludo Board - 15x15 Grid */
+.ludo-board {
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    aspect-ratio: 1;
+    width: min(70vmin, 600px);
+    background: radial-gradient(
+        circle at center,
+        rgba(20, 15, 50, 0.95),
+        rgba(10, 5, 30, 0.98)
+    );
+    border: 3px solid rgba(100, 100, 255, 0.4);
+    border-radius: 16px;
+    box-shadow:
+        0 0 50px rgba(100, 100, 255, 0.2),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
+    padding: 4px;
+    gap: 1px;
+    position: relative;
+}
+
+/* Base Cell Styling */
+.board-cell {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.3s ease;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Empty/non-playable cells */
+.board-cell.empty-cell {
+    background: transparent;
+    border: none;
+}
+
+/* Home area cells */
+.board-cell.home-area {
+    background: rgba(0, 0, 0, 0.2);
+    border: none;
+}
+
+.board-cell.red-home {
+    background: rgba(255, 51, 102, 0.15);
+}
+
+.board-cell.green-home {
+    background: rgba(51, 255, 102, 0.15);
+}
+
+.board-cell.yellow-home {
+    background: rgba(255, 255, 51, 0.15);
+}
+
+.board-cell.blue-home {
+    background: rgba(51, 102, 255, 0.15);
+}
+
+/* Center area */
+.board-cell.center-area {
+    background: radial-gradient(circle, rgba(150, 100, 255, 0.3), rgba(100, 50, 200, 0.15));
+    border: 1px solid rgba(150, 100, 255, 0.4);
+}
+
+/* Track Cells - Main path around the board */
+.board-cell.track-cell {
+    background: rgba(100, 150, 255, 0.15);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    box-shadow: inset 0 0 8px rgba(100, 150, 255, 0.2);
+}
+
+.board-cell.track-cell:hover {
+    background: rgba(100, 150, 255, 0.25);
+    box-shadow: inset 0 0 12px rgba(100, 150, 255, 0.4);
+}
+
+/* Safe Zone Cells - Star markers */
+.board-cell.safe-zone {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Star via CSS ::after - consistent positioning */
+.board-cell.safe-zone::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -4px;
+    margin-left: -4px;
+    background: rgba(255, 255, 200, 0.9);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 3px rgba(255, 255, 200, 0.8));
+    pointer-events: none;
+}
+
+/* Home Base Areas - 6x6 corners */
+.home-base {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8%;
+    padding: 12%;
+    border-radius: 10px;
+    position: relative;
+}
+
+/* Home Base Positions */
+.home-base.red {
+    grid-area: 1 / 1 / 7 / 7;
+    background: radial-gradient(circle at center, rgba(255, 51, 102, 0.25), rgba(255, 51, 102, 0.1));
+    border: 2px solid rgba(255, 51, 102, 0.4);
+    box-shadow: inset 0 0 30px rgba(255, 51, 102, 0.2);
+}
+
+.home-base.green {
+    grid-area: 1 / 10 / 7 / 16;
+    background: radial-gradient(circle at center, rgba(51, 255, 102, 0.25), rgba(51, 255, 102, 0.1));
+    border: 2px solid rgba(51, 255, 102, 0.4);
+    box-shadow: inset 0 0 30px rgba(51, 255, 102, 0.2);
+}
+
+.home-base.yellow {
+    grid-area: 10 / 10 / 16 / 16;
+    background: radial-gradient(circle at center, rgba(255, 255, 51, 0.25), rgba(255, 255, 51, 0.1));
+    border: 2px solid rgba(255, 255, 51, 0.4);
+    box-shadow: inset 0 0 30px rgba(255, 255, 51, 0.2);
+}
+
+.home-base.blue {
+    grid-area: 10 / 1 / 16 / 7;
+    background: radial-gradient(circle at center, rgba(51, 102, 255, 0.25), rgba(51, 102, 255, 0.1));
+    border: 2px solid rgba(51, 102, 255, 0.4);
+    box-shadow: inset 0 0 30px rgba(51, 102, 255, 0.2);
+}
+
+/* Home Base Token Slots */
+.home-slot {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.home-base.red .home-slot {
+    border-color: rgba(255, 51, 102, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 51, 102, 0.3);
+}
+
+.home-base.green .home-slot {
+    border-color: rgba(51, 255, 102, 0.5);
+    box-shadow: inset 0 0 10px rgba(51, 255, 102, 0.3);
+}
+
+.home-base.yellow .home-slot {
+    border-color: rgba(255, 255, 51, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 255, 51, 0.3);
+}
+
+.home-base.blue .home-slot {
+    border-color: rgba(51, 102, 255, 0.5);
+    box-shadow: inset 0 0 10px rgba(51, 102, 255, 0.3);
+}
+
+/* Home Stretch Paths - Colored paths leading to center */
+.board-cell.home-path {
+    border-radius: 3px;
+}
+
+.board-cell.red-path {
+    background: linear-gradient(90deg, rgba(255, 51, 102, 0.5), rgba(255, 51, 102, 0.3));
+    border: 1px solid rgba(255, 51, 102, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 51, 102, 0.3);
+}
+
+.board-cell.green-path {
+    background: linear-gradient(180deg, rgba(51, 255, 102, 0.5), rgba(51, 255, 102, 0.3));
+    border: 1px solid rgba(51, 255, 102, 0.5);
+    box-shadow: inset 0 0 10px rgba(51, 255, 102, 0.3);
+}
+
+.board-cell.yellow-path {
+    background: linear-gradient(270deg, rgba(255, 255, 51, 0.5), rgba(255, 255, 51, 0.3));
+    border: 1px solid rgba(255, 255, 51, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 255, 51, 0.3);
+}
+
+.board-cell.blue-path {
+    background: linear-gradient(0deg, rgba(51, 102, 255, 0.5), rgba(51, 102, 255, 0.3));
+    border: 1px solid rgba(51, 102, 255, 0.5);
+    box-shadow: inset 0 0 10px rgba(51, 102, 255, 0.3);
+}
+
+/* Entry Points - Where tokens enter the track */
+.board-cell.entry-point {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.board-cell.entry-point.red {
+    background: rgba(255, 51, 102, 0.4);
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+}
+
+.board-cell.entry-point.green {
+    background: rgba(51, 255, 102, 0.4);
+    box-shadow: 0 0 15px rgba(51, 255, 102, 0.5);
+}
+
+.board-cell.entry-point.yellow {
+    background: rgba(255, 255, 51, 0.4);
+    box-shadow: 0 0 15px rgba(255, 255, 51, 0.5);
+}
+
+.board-cell.entry-point.blue {
+    background: rgba(51, 102, 255, 0.4);
+    box-shadow: 0 0 15px rgba(51, 102, 255, 0.5);
+}
+
+/* Center Winning Zone */
+.center-zone {
+    grid-area: 7 / 7 / 10 / 10;
+    background: radial-gradient(
+        circle at center,
+        rgba(150, 150, 255, 0.3),
+        rgba(100, 100, 200, 0.1)
+    );
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    border: 2px solid rgba(150, 150, 255, 0.4);
+    box-shadow:
+        0 0 30px rgba(150, 150, 255, 0.3),
+        inset 0 0 20px rgba(150, 150, 255, 0.2);
+    overflow: hidden;
+}
+
+/* Center zone triangles for each color */
+.center-triangle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.center-triangle.red {
+    background: linear-gradient(135deg, rgba(255, 51, 102, 0.4), transparent);
+}
+
+.center-triangle.green {
+    background: linear-gradient(225deg, rgba(51, 255, 102, 0.4), transparent);
+}
+
+.center-triangle.yellow {
+    background: linear-gradient(315deg, rgba(255, 255, 51, 0.4), transparent);
+}
+
+.center-triangle.blue {
+    background: linear-gradient(45deg, rgba(51, 102, 255, 0.4), transparent);
+}
+
+/* Cell highlight for valid moves */
+.board-cell.valid-move {
+    animation: validMovePulse 1s ease-in-out infinite;
+    cursor: pointer;
+}
+
+@keyframes validMovePulse {
+    0%, 100% {
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.6);
+    }
+}
+
+/* Cell data attributes for positioning */
+.board-cell[data-row][data-col] {
+    position: relative;
+}
