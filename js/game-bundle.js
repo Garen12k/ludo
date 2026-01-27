@@ -12,7 +12,7 @@
 
     const BOARD_SIZE = 15;
     const TOKENS_PER_PLAYER = 4;
-    const TRACK_LENGTH = 53;
+    const TRACK_LENGTH = 52; // Main track has 52 cells (index 0-51)
     const HOME_PATH_LENGTH = 6;
     const MAX_CONSECUTIVE_SIXES = 3;
 
@@ -138,8 +138,9 @@
     };
 
     // Home entry points (where players enter home path from main track)
+    // Each player enters their home path after passing their entry point
     const HOME_ENTRY_POINTS = {
-        RED: 52,
+        RED: 51,   // Last cell (index 51) before wrapping to 0
         GREEN: 12,
         YELLOW: 25,
         BLUE: 38
