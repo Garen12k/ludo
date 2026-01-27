@@ -324,6 +324,21 @@
                 </div>
                 <button class="roll-button glass-button" id="roll-btn">Roll Dice</button>
                 <div class="dice-result" id="dice-result"></div>
+
+                <!-- Auto-Play Timer (inline with dice) -->
+                <div class="auto-play-inline" id="auto-play-timer">
+                    <div class="auto-play-content">
+                        <div class="auto-play-circle">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+                                <circle class="timer-progress" cx="50" cy="50" r="45" id="timer-progress"></circle>
+                            </svg>
+                            <span class="auto-play-count" id="timer-text">10</span>
+                        </div>
+                        <span class="auto-play-label">AUTO-PLAY IN...</span>
+                        <button class="auto-play-cancel" id="cancel-auto-play">✕ CANCEL</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Game Controls -->
@@ -379,23 +394,6 @@
         <!-- Turn Announcement -->
         <div class="turn-announcement" id="turn-announcement">
             <span class="announcement-text"></span>
-        </div>
-
-        <!-- Auto-Play Timer -->
-        <div class="auto-play-timer" id="auto-play-timer">
-            <div class="timer-content">
-                <div class="timer-circle">
-                    <svg viewBox="0 0 100 100">
-                        <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
-                        <circle class="timer-progress" cx="50" cy="50" r="45" id="timer-progress"></circle>
-                    </svg>
-                    <span class="timer-text" id="timer-text">10</span>
-                </div>
-                <div class="timer-label">Auto-play in...</div>
-                <button class="cancel-auto-play glass-button" id="cancel-auto-play">
-                    ✕ Cancel
-                </button>
-            </div>
         </div>
     </div>
 

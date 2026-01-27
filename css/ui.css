@@ -609,6 +609,7 @@
     gap: 15px;
     padding: 10px;
     z-index: 20;
+    position: relative;
 }
 
 /* Player-info base - overridden by player-card when used together */
@@ -871,53 +872,54 @@
     letter-spacing: 2px;
 }
 
-/* Auto-Play Timer */
-.auto-play-timer {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 200;
+/* Auto-Play Timer - Inline with Dice */
+.auto-play-inline {
     display: none;
-    pointer-events: none;  /* Prevent clicks when hidden */
-    animation: timerSlideIn 0.3s ease-out;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    animation: autoPlayFadeIn 0.3s ease-out;
 }
 
-.auto-play-timer.active {
+.auto-play-inline.active {
     display: block;
-    pointer-events: auto;  /* Allow clicks when visible */
 }
 
-@keyframes timerSlideIn {
+@keyframes autoPlayFadeIn {
     from {
         opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
+        transform: translate(-50%, -50%) scale(0.9);
     }
     to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 
-.timer-content {
+.auto-play-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.85);
-    padding: 20px 30px;
-    border-radius: 20px;
-    border: 2px solid rgba(255, 200, 50, 0.5);
-    box-shadow: 0 0 30px rgba(255, 200, 50, 0.3);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 15px 20px;
+    border-radius: 16px;
+    border: 2px solid rgba(255, 200, 50, 0.6);
+    box-shadow:
+        0 0 30px rgba(255, 200, 50, 0.4),
+        inset 0 0 20px rgba(255, 200, 50, 0.1);
+    backdrop-filter: blur(10px);
 }
 
-.timer-circle {
+.auto-play-circle {
     position: relative;
-    width: 80px;
-    height: 80px;
+    width: 60px;
+    height: 60px;
 }
 
-.timer-circle svg {
+.auto-play-circle svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
@@ -925,50 +927,58 @@
 
 .timer-bg {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.1);
-    stroke-width: 8;
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 6;
 }
 
 .timer-progress {
     fill: none;
     stroke: #ffcc00;
-    stroke-width: 8;
+    stroke-width: 6;
     stroke-linecap: round;
     stroke-dasharray: 283;
     stroke-dashoffset: 0;
     transition: stroke-dashoffset 1s linear;
-    filter: drop-shadow(0 0 10px #ffcc00);
+    filter: drop-shadow(0 0 8px #ffcc00);
 }
 
-.timer-text {
+.auto-play-count {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 28px;
+    font-size: 22px;
     font-weight: bold;
     color: #ffcc00;
     text-shadow: 0 0 10px rgba(255, 200, 0, 0.8);
 }
 
-.timer-label {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
+.auto-play-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
     text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+}
+
+.auto-play-cancel {
+    padding: 6px 16px;
+    font-size: 11px;
+    font-weight: 700;
     letter-spacing: 1px;
+    background: linear-gradient(135deg, rgba(255, 70, 70, 0.5), rgba(200, 40, 40, 0.4));
+    border: 1px solid rgba(255, 100, 100, 0.6);
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.cancel-auto-play {
-    padding: 10px 25px !important;
-    font-size: 14px !important;
-    background: linear-gradient(135deg, rgba(255, 80, 80, 0.4), rgba(255, 50, 50, 0.2)) !important;
-    border-color: rgba(255, 100, 100, 0.5) !important;
-    margin-top: 5px;
-}
-
-.cancel-auto-play:hover {
-    background: linear-gradient(135deg, rgba(255, 100, 100, 0.6), rgba(255, 50, 50, 0.4)) !important;
-    box-shadow: 0 0 20px rgba(255, 100, 100, 0.5) !important;
+.auto-play-cancel:hover {
+    background: linear-gradient(135deg, rgba(255, 100, 100, 0.7), rgba(255, 50, 50, 0.5));
+    box-shadow: 0 0 15px rgba(255, 100, 100, 0.5);
+    transform: scale(1.05);
 }
 
 /* Chat Box */
