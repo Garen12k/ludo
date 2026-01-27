@@ -4198,11 +4198,205 @@
     }
 
     // ============================================
+    // DEBUG LOGGER
+    // ============================================
+
+    class DebugLogger {
+        constructor() {
+            this.panel = document.getElementById('debug-panel');
+            this.content = document.getElementById('debug-content');
+            this.openBtn = document.getElementById('debug-open');
+            this.toggleBtn = document.getElementById('debug-toggle');
+            this.clearBtn = document.getElementById('debug-clear');
+            this.closeBtn = document.getElementById('debug-close');
+            this.maxLogs = 200;
+            this.logs = [];
+
+            this.setupControls();
+            this.interceptConsole();
+            this.setupEventListeners();
+
+            this.log('Debug Logger initialized', 'info');
+        }
+
+        setupControls() {
+            if (this.toggleBtn) {
+                this.toggleBtn.addEventListener('click', () => this.toggleMinimize());
+            }
+            if (this.clearBtn) {
+                this.clearBtn.addEventListener('click', () => this.clear());
+            }
+            if (this.closeBtn) {
+                this.closeBtn.addEventListener('click', () => this.hide());
+            }
+            if (this.openBtn) {
+                this.openBtn.addEventListener('click', () => this.show());
+            }
+        }
+
+        interceptConsole() {
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            const self = this;
+
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                self.parseAndLog(args, 'info');
+            };
+
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                self.parseAndLog(args, 'warn');
+            };
+
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                self.parseAndLog(args, 'error');
+            };
+        }
+
+        setupEventListeners() {
+            // Listen to game events for better logging
+            eventBus.on(GameEvents.TURN_START, (data) => {
+                this.log(`Turn Start: ${data.player?.color || 'Unknown'} (AI: ${data.player?.isAI})`, 'turn');
+            });
+
+            eventBus.on(GameEvents.DICE_ROLLED, (data) => {
+                this.log(`Dice: ${data.value}`, 'dice');
+            });
+
+            eventBus.on(GameEvents.TOKEN_MOVE_START, (data) => {
+                this.log(`Token Move: ${data.tokenId} -> (${data.toPosition?.row},${data.toPosition?.col})`, 'move');
+            });
+
+            eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
+                this.log(`Capture! ${data.capturedToken?.id} by ${data.capturingToken?.id}`, 'event');
+            });
+
+            eventBus.on(GameEvents.TOKEN_FINISH, (data) => {
+                this.log(`Token Finished: ${data.token?.id}`, 'event');
+            });
+
+            eventBus.on(GameEvents.PLAYER_WIN, (data) => {
+                this.log(`WINNER: ${data.player?.color}!`, 'event');
+            });
+
+            eventBus.on(GameEvents.VALID_MOVES_UPDATE, (data) => {
+                this.log(`Valid moves: ${data.moves?.length || 0}`, 'info');
+            });
+        }
+
+        parseAndLog(args, type) {
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg, null, 0).substring(0, 100);
+                    } catch {
+                        return String(arg);
+                    }
+                }
+                return String(arg);
+            }).join(' ');
+
+            // Categorize by content
+            if (message.includes('Turn start') || message.includes('Turn Start')) type = 'turn';
+            else if (message.includes('Dice') || message.includes('dice')) type = 'dice';
+            else if (message.includes('move') || message.includes('Move')) type = 'move';
+            else if (message.includes('network') || message.includes('Network') || message.includes('broadcast')) type = 'network';
+            else if (message.includes('Error') || message.includes('error') || message.includes('Invalid')) type = 'error';
+
+            this.log(message, type);
+        }
+
+        log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                fractionalSecondDigits: 2
+            });
+
+            this.logs.push({ time, message, type });
+
+            // Limit logs
+            if (this.logs.length > this.maxLogs) {
+                this.logs.shift();
+            }
+
+            this.renderLog({ time, message, type });
+        }
+
+        renderLog(log) {
+            if (!this.content) return;
+
+            const div = document.createElement('div');
+            div.className = `debug-log ${log.type}`;
+            div.innerHTML = `<span class="time">${log.time}</span>${this.escapeHtml(log.message)}`;
+
+            this.content.appendChild(div);
+
+            // Auto scroll to bottom
+            this.content.scrollTop = this.content.scrollHeight;
+
+            // Remove old entries from DOM
+            while (this.content.children.length > this.maxLogs) {
+                this.content.removeChild(this.content.firstChild);
+            }
+        }
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        clear() {
+            this.logs = [];
+            if (this.content) {
+                this.content.innerHTML = '';
+            }
+            this.log('Logs cleared', 'info');
+        }
+
+        toggleMinimize() {
+            if (this.panel) {
+                this.panel.classList.toggle('minimized');
+                if (this.toggleBtn) {
+                    this.toggleBtn.textContent = this.panel.classList.contains('minimized') ? '+' : '_';
+                }
+            }
+        }
+
+        hide() {
+            if (this.panel) {
+                this.panel.classList.add('hidden');
+            }
+            if (this.openBtn) {
+                this.openBtn.classList.add('visible');
+            }
+        }
+
+        show() {
+            if (this.panel) {
+                this.panel.classList.remove('hidden');
+            }
+            if (this.openBtn) {
+                this.openBtn.classList.remove('visible');
+            }
+        }
+    }
+
+    // ============================================
     // INITIALIZATION
     // ============================================
 
     function init() {
         console.log('Initializing Space Ludo...');
+
+        // Initialize debug logger first
+        const debugLogger = new DebugLogger();
 
         // Initialize renderers
         const boardRenderer = new BoardRenderer('ludo-board');
@@ -4249,7 +4443,8 @@
             chatSystem,
             networkManager,
             onlineLobbyController,
-            tokenRenderer
+            tokenRenderer,
+            debugLogger
         };
 
         console.log('Space Ludo initialized!');
