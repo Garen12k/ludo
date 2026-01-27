@@ -3369,6 +3369,9 @@
                 case 'TURN_END':
                     this.handleRemoteTurnEnd(action.payload);
                     break;
+                case 'TURN_SYNC':
+                    this.handleRemoteTurnSync(action.payload);
+                    break;
                 case 'PROFILE_SYNC':
                     this.handleRemoteProfileSync(action.payload);
                     break;
@@ -3379,7 +3382,13 @@
 
         handleRemoteDiceRoll(payload) {
             const { value, playerIndex, consecutiveSixes } = payload;
-            console.log('Remote dice roll:', value, 'by player', playerIndex);
+            console.log('Remote dice roll:', value, 'by player', playerIndex, 'current:', gameState.currentPlayerIndex);
+
+            // Sync the player index if it doesn't match (handles desync)
+            if (gameState.currentPlayerIndex !== playerIndex) {
+                console.warn('Player index desync! Syncing to', playerIndex);
+                gameState.currentPlayerIndex = playerIndex;
+            }
 
             // Update game state with the dice value
             gameState.diceValue = value;
@@ -3420,7 +3429,13 @@
 
         handleRemoteTokenSelect(payload) {
             const { tokenId, playerIndex } = payload;
-            console.log('Remote token select:', tokenId, 'by player', playerIndex);
+            console.log('Remote token select:', tokenId, 'by player', playerIndex, 'current:', gameState.currentPlayerIndex);
+
+            // Sync the player index if it doesn't match (handles desync)
+            if (gameState.currentPlayerIndex !== playerIndex) {
+                console.warn('Player index desync on token select! Syncing to', playerIndex);
+                gameState.currentPlayerIndex = playerIndex;
+            }
 
             // Find the move
             const move = gameState.validMoves.find(m => m.tokenId === tokenId);
@@ -3478,13 +3493,36 @@
             const { nextPlayerIndex } = payload;
             console.log('Remote turn end, next player:', nextPlayerIndex);
 
-            gameState.nextTurn();
+            // Explicitly set the player index to stay in sync (don't use nextTurn which increments)
+            gameState.currentPlayerIndex = nextPlayerIndex;
+            gameState.turnPhase = TURN_PHASE.WAITING;
+            gameState.selectToken(null);
+            gameState.setValidMoves([]);
             Dice.reset();
+
+            // Emit turn end event
+            eventBus.emit(GameEvents.TURN_END, {
+                playerIndex: nextPlayerIndex
+            });
 
             // Start the new turn
             setTimeout(async () => {
                 await TurnManager.startTurn();
             }, ANIMATION_DURATIONS.TURN_DELAY);
+        }
+
+        handleRemoteTurnSync(payload) {
+            const { currentPlayerIndex, turnPhase } = payload;
+            console.log('Turn sync received - player:', currentPlayerIndex, 'phase:', turnPhase);
+
+            // Force sync the game state
+            gameState.currentPlayerIndex = currentPlayerIndex;
+            gameState.turnPhase = turnPhase || TURN_PHASE.WAITING;
+
+            // Update UI to show correct active player
+            eventBus.emit(GameEvents.TURN_START, {
+                player: gameState.players[currentPlayerIndex]
+            });
         }
 
         handleRemoteProfileSync(payload) {
@@ -3981,6 +4019,15 @@
                     players: gameState.players,
                     mode: 'online'
                 });
+
+                // Host broadcasts initial turn state to sync all clients
+                if (networkManager && networkManager.isOnline && networkManager.isHost) {
+                    networkManager.broadcastAction('TURN_SYNC', {
+                        currentPlayerIndex: 0,
+                        turnPhase: TURN_PHASE.WAITING
+                    });
+                }
+
                 TurnManager.startTurn();
 
                 // Broadcast our profile to other players after game starts
