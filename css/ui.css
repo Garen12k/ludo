@@ -488,6 +488,12 @@
 
 .player-panel.top {
     margin-bottom: 10px;
+    justify-content: center;
+}
+
+.player-panel.bottom {
+    margin-top: 10px;
+    justify-content: center;
 }
 
 .player-panel.side {

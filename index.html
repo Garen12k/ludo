@@ -233,7 +233,7 @@
     <div id="game-screen" class="screen">
         <!-- Game Container -->
         <div class="game-container">
-            <!-- Player Info Panel - Top -->
+            <!-- Player Info Panel - Top (Green only) -->
             <div class="player-panel top">
                 <div class="player-info" data-player="1">
                     <div class="player-avatar green">
@@ -241,14 +241,6 @@
                         <span class="avatar-icon">&#128126;</span>
                     </div>
                     <span class="player-name">Player 2</span>
-                    <div class="turn-indicator"></div>
-                </div>
-                <div class="player-info" data-player="2">
-                    <div class="player-avatar yellow">
-                        <img src="" alt="Player 3" class="profile-pic" id="game-avatar-2">
-                        <span class="avatar-icon">&#128126;</span>
-                    </div>
-                    <span class="player-name">Player 3</span>
                     <div class="turn-indicator"></div>
                 </div>
             </div>
@@ -317,16 +309,28 @@
                     </div>
                 </div>
 
-                <!-- Right Player -->
+                <!-- Right Player (Yellow) -->
                 <div class="player-panel side right">
-                    <div class="player-info vertical" data-player="3">
-                        <div class="player-avatar blue">
-                            <img src="" alt="Player 4" class="profile-pic" id="game-avatar-3">
+                    <div class="player-info vertical" data-player="2">
+                        <div class="player-avatar yellow">
+                            <img src="" alt="Player 3" class="profile-pic" id="game-avatar-2">
                             <span class="avatar-icon">&#128126;</span>
                         </div>
-                        <span class="player-name">Player 4</span>
+                        <span class="player-name">Player 3</span>
                         <div class="turn-indicator"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Player Info Panel - Bottom (Blue only) -->
+            <div class="player-panel bottom">
+                <div class="player-info" data-player="3">
+                    <div class="player-avatar blue">
+                        <img src="" alt="Player 4" class="profile-pic" id="game-avatar-3">
+                        <span class="avatar-icon">&#128126;</span>
+                    </div>
+                    <span class="player-name">Player 4</span>
+                    <div class="turn-indicator"></div>
                 </div>
             </div>
 
