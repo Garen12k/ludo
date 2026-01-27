@@ -1215,20 +1215,35 @@
             const move = gameState.validMoves.find(m => m.tokenId === tokenId);
             if (!move) return;
 
-            // Broadcast token selection in online mode
-            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
-                networkManager.broadcastAction('TOKEN_SELECT', {
-                    tokenId,
-                    playerIndex: gameState.currentPlayerIndex
-                });
-            }
-
+            // executeMove handles the broadcast now
             await this.executeMove(move);
         },
 
-        async executeMove(move) {
+        async executeMove(move, skipBroadcast = false) {
             if (this.isProcessing) return;
             this.isProcessing = true;
+
+            // Broadcast move in online mode (if not already broadcast by selectToken)
+            if (!skipBroadcast && gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
+                const moveData = {
+                    tokenId: move.tokenId,
+                    fromPosition: move.fromPosition,
+                    toPosition: move.toPosition,
+                    fromTrackIndex: move.fromTrackIndex,
+                    toTrackIndex: move.toTrackIndex,
+                    fromHomePathIndex: move.fromHomePathIndex,
+                    toHomePathIndex: move.toHomePathIndex,
+                    type: move.type,
+                    diceValue: move.diceValue,
+                    path: move.path,
+                    captureTokenId: move.capture ? move.capture.id : null
+                };
+                networkManager.broadcastAction('TOKEN_SELECT', {
+                    tokenId: move.tokenId,
+                    playerIndex: gameState.currentPlayerIndex,
+                    moveData
+                });
+            }
 
             gameState.turnPhase = TURN_PHASE.MOVING;
             gameState.selectToken(move.tokenId);
@@ -3429,8 +3444,8 @@
         }
 
         handleRemoteTokenSelect(payload) {
-            const { tokenId, playerIndex } = payload;
-            console.log('Remote token select:', tokenId, 'by player', playerIndex, 'current:', gameState.currentPlayerIndex);
+            const { tokenId, playerIndex, moveData } = payload;
+            console.log('Remote token select:', tokenId, 'by player', playerIndex, 'moveData:', moveData);
 
             // Sync the player index if it doesn't match (handles desync)
             if (gameState.currentPlayerIndex !== playerIndex) {
@@ -3438,12 +3453,58 @@
                 gameState.currentPlayerIndex = playerIndex;
             }
 
-            // Find the move
-            const move = gameState.validMoves.find(m => m.tokenId === tokenId);
-            if (!move) {
-                console.warn('Could not find valid move for token:', tokenId);
+            // Get the current player and find the token
+            const currentPlayer = gameState.getCurrentPlayer();
+            if (!currentPlayer) {
+                console.error('No current player found');
                 return;
             }
+
+            const token = currentPlayer.tokens.find(t => t.id === tokenId);
+            if (!token) {
+                console.error('Could not find token:', tokenId);
+                return;
+            }
+
+            // Reconstruct the move from moveData (sent with broadcast) or fallback to validMoves
+            let move;
+            if (moveData) {
+                // Use the move data sent by the remote player
+                move = {
+                    tokenId: moveData.tokenId,
+                    token: token,
+                    fromPosition: moveData.fromPosition,
+                    toPosition: moveData.toPosition,
+                    fromTrackIndex: moveData.fromTrackIndex,
+                    toTrackIndex: moveData.toTrackIndex,
+                    fromHomePathIndex: moveData.fromHomePathIndex,
+                    toHomePathIndex: moveData.toHomePathIndex,
+                    type: moveData.type,
+                    diceValue: moveData.diceValue,
+                    path: moveData.path
+                };
+
+                // Reconstruct capture token if any
+                if (moveData.captureTokenId) {
+                    for (const player of gameState.players) {
+                        if (player.index === currentPlayer.index) continue;
+                        const captureToken = player.tokens.find(t => t.id === moveData.captureTokenId);
+                        if (captureToken) {
+                            move.capture = captureToken;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // Fallback: try to find the move in validMoves
+                move = gameState.validMoves.find(m => m.tokenId === tokenId);
+                if (!move) {
+                    console.warn('Could not find valid move for token:', tokenId);
+                    return;
+                }
+            }
+
+            console.log('Executing remote move:', move);
 
             // Execute the move locally
             gameState.turnPhase = TURN_PHASE.MOVING;
@@ -3573,10 +3634,19 @@
         }
 
         async broadcastAction(actionType, payload) {
-            if (!this.supabase || !this.roomId || this.applyingRemote) return;
+            if (!this.supabase || !this.roomId) {
+                console.warn('Cannot broadcast - not connected:', { supabase: !!this.supabase, roomId: this.roomId });
+                return;
+            }
+            if (this.applyingRemote) {
+                console.log('Skipping broadcast - applying remote action');
+                return;
+            }
+
+            console.log('Broadcasting action:', actionType, payload);
 
             try {
-                await this.supabase
+                const { error } = await this.supabase
                     .from('game_actions')
                     .insert({
                         room_id: this.roomId,
@@ -3584,6 +3654,12 @@
                         action_type: actionType,
                         payload: payload
                     });
+
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                } else {
+                    console.log('Broadcast successful:', actionType);
+                }
             } catch (error) {
                 console.error('Failed to broadcast action:', error);
             }
