@@ -484,20 +484,25 @@
     display: flex;
     gap: 30px;
     padding: 10px;
+    align-items: center;
 }
 
 .player-panel.top {
     margin-bottom: 10px;
-    justify-content: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 600px;
 }
 
 .player-panel.bottom {
     margin-top: 10px;
-    justify-content: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 600px;
 }
 
-.player-panel.side {
-    flex-direction: column;
+.player-spacer {
+    flex: 1;
 }
 
 .player-info {

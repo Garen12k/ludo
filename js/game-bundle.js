@@ -523,8 +523,8 @@
                 consecutiveSixes: this.consecutiveSixes
             });
 
-            // Broadcast to online players
-            if (this.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+            // Broadcast to online players (own turn or host for AI turn)
+            if (this.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
                 networkManager.broadcastAction('DICE_ROLL', {
                     value,
                     playerIndex: this.currentPlayerIndex,
@@ -1147,7 +1147,8 @@
 
             await this.delay(ANIMATION_DURATIONS.TURN_DELAY);
 
-            if (player.isAI) {
+            // Only handle AI if we're supposed to (non-online OR host in online)
+            if (player.isAI && (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isHost))) {
                 await this.handleAITurn();
             }
         },
@@ -1215,7 +1216,7 @@
             if (!move) return;
 
             // Broadcast token selection in online mode
-            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
                 networkManager.broadcastAction('TOKEN_SELECT', {
                     tokenId,
                     playerIndex: gameState.currentPlayerIndex
@@ -1284,8 +1285,8 @@
         },
 
         async endTurn() {
-            // Broadcast turn end in online mode (only from the active player)
-            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.isLocalPlayerTurn()) {
+            // Broadcast turn end in online mode (from active player or host for AI)
+            if (gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
                 networkManager.broadcastAction('TURN_END', {
                     playerIndex: gameState.currentPlayerIndex,
                     nextPlayerIndex: (gameState.currentPlayerIndex + 1) % gameState.players.length
@@ -3668,6 +3669,21 @@
             if (!this.isOnline) return true;
             const currentPlayer = gameState.getCurrentPlayer();
             return currentPlayer && gameState.currentPlayerIndex === this.playerSlot;
+        }
+
+        // Check if local client should handle the current turn (own turn OR AI turn if host)
+        shouldHandleCurrentTurn() {
+            if (!this.isOnline) return true;
+            const currentPlayer = gameState.getCurrentPlayer();
+            if (!currentPlayer) return false;
+
+            // It's our own turn
+            if (gameState.currentPlayerIndex === this.playerSlot) return true;
+
+            // It's an AI's turn and we're the host
+            if (currentPlayer.isAI && this.isHost) return true;
+
+            return false;
         }
 
         startHeartbeat() {
