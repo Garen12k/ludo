@@ -1393,6 +1393,11 @@
             eventBus.on(GameEvents.TOKEN_MOVE, (data) => this.animateMove(data.move));
             eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => this.handleCapture(data.captured));
             eventBus.on(GameEvents.VALID_MOVES_UPDATE, (data) => this.highlightValidTokens(data.moves));
+
+            // Online game token rendering
+            eventBus.on('online:gameReady', () => {
+                setTimeout(() => this.renderAllTokens(), 100);
+            });
         }
 
         renderAllTokens() {
@@ -2894,6 +2899,17 @@
             eventBus.on(GameEvents.PLAYER_WIN, (data) => {
                 this.addSystemMessage(`🎉 ${data.player.name} wins the game! 🎉`);
             });
+
+            // Receive chat messages from other players in online mode
+            eventBus.on('online:chatMessage', (data) => {
+                // Don't duplicate our own messages (we already added them locally)
+                if (gameState.isOnlineGame && networkManager && networkManager.playerSlot !== undefined) {
+                    const localPlayer = gameState.players[networkManager.playerSlot];
+                    if (!localPlayer || data.senderName !== localPlayer.name) {
+                        this.addMessage(data.senderName, data.message, data.senderColor);
+                    }
+                }
+            });
         }
 
         toggleMinimize() {
@@ -2917,6 +2933,16 @@
             }
 
             this.addMessage(player.name, text, player.color.toLowerCase());
+
+            // Broadcast chat message to other players in online mode
+            if (gameState.isOnlineGame && typeof networkManager !== 'undefined' && networkManager.isOnline) {
+                networkManager.broadcastAction('CHAT_MESSAGE', {
+                    senderName: player.name,
+                    senderColor: player.color.toLowerCase(),
+                    message: text,
+                    timestamp: Date.now()
+                });
+            }
 
             if (this.chatInput) {
                 this.chatInput.value = '';
@@ -3610,11 +3636,16 @@
                 const nameEl = slot.querySelector('.slot-name');
                 const statusEl = slot.querySelector('.slot-status');
                 const hostBadge = slot.querySelector('.host-badge');
+                const avatarNumber = slot.querySelector('.slot-number');
 
                 slot.classList.remove('occupied', 'is-you');
                 nameEl.textContent = 'Waiting...';
                 statusEl.textContent = 'Empty';
                 hostBadge.classList.add('hidden');
+                // Reset avatar to slot number
+                if (avatarNumber) {
+                    avatarNumber.textContent = (index + 1).toString();
+                }
             });
 
             // Fill in players
@@ -3624,10 +3655,16 @@
                     const nameEl = slot.querySelector('.slot-name');
                     const statusEl = slot.querySelector('.slot-status');
                     const hostBadge = slot.querySelector('.host-badge');
+                    const avatarNumber = slot.querySelector('.slot-number');
 
                     slot.classList.add('occupied');
                     nameEl.textContent = player.name;
                     statusEl.textContent = 'Ready';
+
+                    // Show player's initial letter in the avatar
+                    if (avatarNumber && player.name) {
+                        avatarNumber.textContent = player.name.charAt(0).toUpperCase();
+                    }
 
                     if (player.is_host) {
                         hostBadge.classList.remove('hidden');
@@ -3760,7 +3797,8 @@
             AIController,
             chatSystem,
             networkManager,
-            onlineLobbyController
+            onlineLobbyController,
+            tokenRenderer
         };
 
         console.log('Space Ludo initialized!');
