@@ -2329,10 +2329,17 @@
                 this.stop();
                 // Check if player gets extra turn (rolled 6)
                 const player = gameState.getCurrentPlayer();
-                if (player && !player.isAI && gameState.turnPhase === TURN_PHASE.WAITING && gameState.phase === GAME_PHASE.PLAYING) {
-                    // Reset cancelled for extra turn
+                console.log('TOKEN_MOVE_COMPLETE - player:', player?.color, 'isAI:', player?.isAI, 'turnPhase:', gameState.turnPhase, 'canRollAgain:', gameState.canRollAgain());
+                if (player && !player.isAI && gameState.phase === GAME_PHASE.PLAYING) {
+                    // Reset cancelled for extra turn opportunity
                     this.isCancelled = false;
-                    setTimeout(() => this.start(), 500);
+                    // Delay to let turnPhase update properly
+                    setTimeout(() => {
+                        console.log('Checking auto-play restart - turnPhase:', gameState.turnPhase, 'canRollAgain:', gameState.canRollAgain());
+                        if (gameState.turnPhase === TURN_PHASE.WAITING) {
+                            this.start();
+                        }
+                    }, 600);
                 }
             });
 
@@ -4442,7 +4449,8 @@
             });
 
             eventBus.on(GameEvents.TOKEN_MOVE_START, (data) => {
-                this.log(`Token Move: ${data.tokenId} -> (${data.toPosition?.row},${data.toPosition?.col})`, 'move');
+                const move = data.move || data;
+                this.log(`Token Move: ${move.tokenId || 'unknown'} -> (${move.toPosition?.row ?? '?'},${move.toPosition?.col ?? '?'}) type: ${move.type || '?'}`, 'move');
             });
 
             eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
