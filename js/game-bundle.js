@@ -3683,11 +3683,11 @@
                 const lobbyPlayer = sortedPlayers.find(p => p.slot === i);
                 const playerColor = PLAYER_ORDER[i];
 
-                const player = new Player(
-                    playerColor,
-                    lobbyPlayer ? lobbyPlayer.name : `${playerColor} (AI)`,
-                    !lobbyPlayer // isAI if no player in that slot
-                );
+                // Player constructor expects (index, config)
+                const player = new Player(i, {
+                    name: lobbyPlayer ? lobbyPlayer.name : `${playerColor} (AI)`,
+                    isAI: !lobbyPlayer
+                });
 
                 gameState.players.push(player);
             }
@@ -3698,9 +3698,13 @@
             // Re-render board and tokens
             eventBus.emit('online:gameReady', { players: gameState.players });
 
-            // Start the game
+            // Start the game - use startTurn instead of startGame
             setTimeout(() => {
-                TurnManager.startGame();
+                eventBus.emit(GameEvents.GAME_START, {
+                    players: gameState.players,
+                    mode: 'online'
+                });
+                TurnManager.startTurn();
             }, 500);
         }
     }
