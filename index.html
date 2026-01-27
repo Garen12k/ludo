@@ -407,6 +407,19 @@
                 <button class="debug-btn" id="debug-close" title="Close">X</button>
             </div>
         </div>
+        <div class="debug-toolbar">
+            <button class="debug-tool-btn" id="debug-pause" title="Pause/Resume Game">⏸ Pause</button>
+            <button class="debug-tool-btn" id="debug-state" title="Log Game State">State</button>
+            <button class="debug-tool-btn" id="debug-tokens" title="Log All Tokens">Tokens</button>
+            <button class="debug-tool-btn" id="debug-players" title="Log Players">Players</button>
+            <button class="debug-tool-btn" id="debug-step" title="Step (1 AI turn)">Step</button>
+        </div>
+        <div class="debug-status" id="debug-status">
+            <span class="status-item" id="debug-phase">Phase: --</span>
+            <span class="status-item" id="debug-turn">Turn: --</span>
+            <span class="status-item" id="debug-dice">Dice: --</span>
+            <span class="status-item" id="debug-paused">RUNNING</span>
+        </div>
         <div class="debug-content" id="debug-content">
             <!-- Logs will appear here -->
         </div>

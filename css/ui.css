@@ -1114,6 +1114,79 @@
     color: #aa88ff;
 }
 
+/* Debug Toolbar */
+.debug-toolbar {
+    display: flex;
+    gap: 5px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(0, 255, 100, 0.2);
+    flex-wrap: wrap;
+}
+
+.debug-tool-btn {
+    background: rgba(0, 255, 100, 0.15);
+    border: 1px solid rgba(0, 255, 100, 0.3);
+    color: #00ff64;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+    font-weight: bold;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.debug-tool-btn:hover {
+    background: rgba(0, 255, 100, 0.25);
+    box-shadow: 0 0 10px rgba(0, 255, 100, 0.3);
+}
+
+.debug-tool-btn.active {
+    background: rgba(255, 100, 100, 0.3);
+    border-color: rgba(255, 100, 100, 0.5);
+    color: #ff6666;
+}
+
+.debug-tool-btn.active:hover {
+    background: rgba(255, 100, 100, 0.4);
+}
+
+/* Debug Status Bar */
+.debug-status {
+    display: flex;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid rgba(0, 255, 100, 0.2);
+    font-size: 10px;
+    flex-wrap: wrap;
+}
+
+.debug-status .status-item {
+    color: #aaa;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.debug-status .status-item#debug-paused {
+    color: #00ff64;
+    font-weight: bold;
+}
+
+.debug-status .status-item#debug-paused.paused {
+    color: #ff6666;
+    background: rgba(255, 100, 100, 0.2);
+    animation: pauseBlink 1s ease-in-out infinite;
+}
+
+@keyframes pauseBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 .debug-open-btn {
     position: fixed;
     bottom: 20px;

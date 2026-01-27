@@ -457,6 +457,18 @@
             this.winner = null;
             this.soundEnabled = true;
             this.isOnlineGame = false;
+            this.isPaused = false;
+        }
+
+        togglePause() {
+            if (this.isOnlineGame) {
+                console.warn('Cannot pause online games');
+                return false;
+            }
+            this.isPaused = !this.isPaused;
+            console.log('Game ' + (this.isPaused ? 'PAUSED' : 'RESUMED'));
+            eventBus.emit(this.isPaused ? GameEvents.GAME_PAUSE : GameEvents.GAME_RESUME, { paused: this.isPaused });
+            return this.isPaused;
         }
 
         initGame(config) {
@@ -1121,13 +1133,23 @@
     const TurnManager = {
         isProcessing: false,
 
+        async waitWhilePaused() {
+            while (gameState.isPaused) {
+                await this.delay(100);
+            }
+        },
+
         async startTurn() {
+            await this.waitWhilePaused();
+
             const player = gameState.getCurrentPlayer();
             gameState.turnPhase = TURN_PHASE.WAITING;
 
             eventBus.emit(GameEvents.TURN_START, { player });
 
             await this.delay(ANIMATION_DURATIONS.TURN_DELAY);
+
+            await this.waitWhilePaused();
 
             // Only handle AI if we're supposed to (non-online OR host in online)
             if (player.isAI && (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isHost))) {
@@ -1136,6 +1158,7 @@
         },
 
         async rollDice() {
+            await this.waitWhilePaused();
             if (gameState.turnPhase !== TURN_PHASE.WAITING) return null;
 
             gameState.turnPhase = TURN_PHASE.ROLLING;
@@ -1282,6 +1305,8 @@
         },
 
         async endTurn() {
+            await this.waitWhilePaused();
+
             // Broadcast turn end in online mode (from active player or host for AI)
             if (gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
                 networkManager.broadcastAction('TURN_END', {
@@ -1299,7 +1324,9 @@
         },
 
         async handleAITurn() {
+            await this.waitWhilePaused();
             await this.delay(ANIMATION_DURATIONS.AI_THINK);
+            await this.waitWhilePaused();
             await this.rollDice();
         },
 
@@ -4209,12 +4236,29 @@
             this.toggleBtn = document.getElementById('debug-toggle');
             this.clearBtn = document.getElementById('debug-clear');
             this.closeBtn = document.getElementById('debug-close');
+
+            // New tool buttons
+            this.pauseBtn = document.getElementById('debug-pause');
+            this.stateBtn = document.getElementById('debug-state');
+            this.tokensBtn = document.getElementById('debug-tokens');
+            this.playersBtn = document.getElementById('debug-players');
+            this.stepBtn = document.getElementById('debug-step');
+
+            // Status elements
+            this.phaseEl = document.getElementById('debug-phase');
+            this.turnEl = document.getElementById('debug-turn');
+            this.diceEl = document.getElementById('debug-dice');
+            this.pausedEl = document.getElementById('debug-paused');
+
             this.maxLogs = 200;
             this.logs = [];
+            this.stepMode = false;
 
             this.setupControls();
+            this.setupToolButtons();
             this.interceptConsole();
             this.setupEventListeners();
+            this.startStatusUpdater();
 
             this.log('Debug Logger initialized', 'info');
         }
@@ -4232,6 +4276,117 @@
             if (this.openBtn) {
                 this.openBtn.addEventListener('click', () => this.show());
             }
+        }
+
+        setupToolButtons() {
+            // Pause button
+            if (this.pauseBtn) {
+                this.pauseBtn.addEventListener('click', () => {
+                    if (gameState.isOnlineGame) {
+                        this.log('Cannot pause online games', 'warn');
+                        return;
+                    }
+                    const isPaused = gameState.togglePause();
+                    this.pauseBtn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+                    this.pauseBtn.classList.toggle('active', isPaused);
+                    this.updateStatus();
+                });
+            }
+
+            // State button
+            if (this.stateBtn) {
+                this.stateBtn.addEventListener('click', () => {
+                    this.logGameState();
+                });
+            }
+
+            // Tokens button
+            if (this.tokensBtn) {
+                this.tokensBtn.addEventListener('click', () => {
+                    this.logTokens();
+                });
+            }
+
+            // Players button
+            if (this.playersBtn) {
+                this.playersBtn.addEventListener('click', () => {
+                    this.logPlayers();
+                });
+            }
+
+            // Step button (single turn)
+            if (this.stepBtn) {
+                this.stepBtn.addEventListener('click', () => {
+                    if (gameState.isPaused) {
+                        this.stepMode = true;
+                        gameState.isPaused = false;
+                        this.log('Step mode: executing one turn...', 'info');
+                        // Will re-pause after turn in event listener
+                    } else {
+                        this.log('Pause the game first to use Step', 'warn');
+                    }
+                });
+            }
+        }
+
+        startStatusUpdater() {
+            setInterval(() => this.updateStatus(), 500);
+        }
+
+        updateStatus() {
+            if (this.phaseEl) {
+                this.phaseEl.textContent = `Phase: ${gameState.phase || '--'}`;
+            }
+            if (this.turnEl) {
+                const player = gameState.getCurrentPlayer?.();
+                this.turnEl.textContent = `Turn: ${player?.color || '--'} ${player?.isAI ? '(AI)' : ''}`;
+            }
+            if (this.diceEl) {
+                this.diceEl.textContent = `Dice: ${gameState.diceValue || '--'}`;
+            }
+            if (this.pausedEl) {
+                this.pausedEl.textContent = gameState.isPaused ? 'PAUSED' : 'RUNNING';
+                this.pausedEl.classList.toggle('paused', gameState.isPaused);
+            }
+        }
+
+        logGameState() {
+            this.log('=== GAME STATE ===', 'info');
+            this.log(`Phase: ${gameState.phase}`, 'info');
+            this.log(`Turn Phase: ${gameState.turnPhase}`, 'info');
+            this.log(`Current Player: ${gameState.currentPlayerIndex}`, 'info');
+            this.log(`Dice Value: ${gameState.diceValue}`, 'info');
+            this.log(`Consecutive 6s: ${gameState.consecutiveSixes}`, 'info');
+            this.log(`Valid Moves: ${gameState.validMoves?.length || 0}`, 'info');
+            this.log(`Is Online: ${gameState.isOnlineGame}`, 'info');
+            this.log(`Is Paused: ${gameState.isPaused}`, 'info');
+            this.log('==================', 'info');
+        }
+
+        logTokens() {
+            this.log('=== ALL TOKENS ===', 'info');
+            gameState.players?.forEach((player, pi) => {
+                player.tokens?.forEach((token, ti) => {
+                    this.log(
+                        `${player.color}[${ti}]: ${token.state} | pos:(${token.position?.row},${token.position?.col}) | track:${token.trackIndex} | home:${token.homePathIndex}`,
+                        'move'
+                    );
+                });
+            });
+            this.log('==================', 'info');
+        }
+
+        logPlayers() {
+            this.log('=== PLAYERS ===', 'info');
+            gameState.players?.forEach((player, i) => {
+                const activeTokens = player.getActiveTokens?.()?.length || 0;
+                const finishedTokens = player.finishedTokens || 0;
+                this.log(
+                    `[${i}] ${player.color} ${player.isAI ? '(AI)' : '(Human)'} | Active: ${activeTokens} | Finished: ${finishedTokens}`,
+                    'turn'
+                );
+            });
+            this.log('===============', 'info');
         }
 
         interceptConsole() {
@@ -4257,13 +4412,33 @@
         }
 
         setupEventListeners() {
+            const self = this;
+
             // Listen to game events for better logging
             eventBus.on(GameEvents.TURN_START, (data) => {
                 this.log(`Turn Start: ${data.player?.color || 'Unknown'} (AI: ${data.player?.isAI})`, 'turn');
+                this.updateStatus();
+            });
+
+            eventBus.on(GameEvents.TURN_END, () => {
+                // Handle step mode - re-pause after one turn
+                if (this.stepMode) {
+                    this.stepMode = false;
+                    setTimeout(() => {
+                        gameState.isPaused = true;
+                        this.log('Step complete - paused', 'info');
+                        this.updateStatus();
+                        if (this.pauseBtn) {
+                            this.pauseBtn.textContent = '▶ Resume';
+                            this.pauseBtn.classList.add('active');
+                        }
+                    }, 100);
+                }
             });
 
             eventBus.on(GameEvents.DICE_ROLLED, (data) => {
                 this.log(`Dice: ${data.value}`, 'dice');
+                this.updateStatus();
             });
 
             eventBus.on(GameEvents.TOKEN_MOVE_START, (data) => {
@@ -4280,6 +4455,16 @@
 
             eventBus.on(GameEvents.PLAYER_WIN, (data) => {
                 this.log(`WINNER: ${data.player?.color}!`, 'event');
+            });
+
+            eventBus.on(GameEvents.GAME_PAUSE, () => {
+                this.log('Game PAUSED', 'warn');
+                this.updateStatus();
+            });
+
+            eventBus.on(GameEvents.GAME_RESUME, () => {
+                this.log('Game RESUMED', 'info');
+                this.updateStatus();
             });
 
             eventBus.on(GameEvents.VALID_MOVES_UPDATE, (data) => {
