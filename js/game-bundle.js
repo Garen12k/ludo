@@ -2967,8 +2967,8 @@
 
     // Supabase configuration - Replace with your own Supabase project credentials
     const SUPABASE_CONFIG = {
-        url: 'YOUR_SUPABASE_URL',  // e.g., 'https://xxxx.supabase.co'
-        anonKey: 'YOUR_SUPABASE_ANON_KEY'  // Your anon/public key
+        url: 'https://mwmnkckgxvzombgpfnim.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13bW5rY2tneHZ6b21iZ3BmbmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MDg3NTIsImV4cCI6MjA4NTA4NDc1Mn0.66aF0PTsC8flbGbq0gwWkrR6tvar58C0FMySm4MVqJE'
     };
 
     class NetworkManager {
