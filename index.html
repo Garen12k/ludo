@@ -233,10 +233,10 @@
     <div id="game-screen" class="screen">
         <!-- Game Container with Board-Centric Layout -->
         <div class="game-container">
-            <!-- Board Layout Grid: Players positioned at corners -->
+            <!-- Board Layout: Left Players - Board - Right Players -->
             <div class="board-layout">
-                <!-- Player 1 (Red) - Top Left Corner -->
-                <div class="corner-player top-left">
+                <!-- Left Side: Player 1 (top) and Player 4 (bottom) -->
+                <div class="side-players left-side">
                     <div class="player-card player-info red" data-player="0">
                         <div class="player-avatar red">
                             <img src="" alt="Player 1" class="profile-pic" id="game-avatar-0">
@@ -245,16 +245,12 @@
                         <span class="player-name">Player 1</span>
                         <div class="turn-indicator"></div>
                     </div>
-                </div>
-
-                <!-- Player 2 (Green) - Top Right Corner -->
-                <div class="corner-player top-right">
-                    <div class="player-card player-info green" data-player="1">
-                        <div class="player-avatar green">
-                            <img src="" alt="Player 2" class="profile-pic" id="game-avatar-1">
+                    <div class="player-card player-info blue" data-player="3">
+                        <div class="player-avatar blue">
+                            <img src="" alt="Player 4" class="profile-pic" id="game-avatar-3">
                             <span class="avatar-icon">&#128126;</span>
                         </div>
-                        <span class="player-name">Player 2</span>
+                        <span class="player-name">Player 4</span>
                         <div class="turn-indicator"></div>
                     </div>
                 </div>
@@ -266,20 +262,16 @@
                     </div>
                 </div>
 
-                <!-- Player 4 (Blue) - Bottom Left Corner -->
-                <div class="corner-player bottom-left">
-                    <div class="player-card player-info blue" data-player="3">
-                        <div class="player-avatar blue">
-                            <img src="" alt="Player 4" class="profile-pic" id="game-avatar-3">
+                <!-- Right Side: Player 2 (top) and Player 3 (bottom) -->
+                <div class="side-players right-side">
+                    <div class="player-card player-info green" data-player="1">
+                        <div class="player-avatar green">
+                            <img src="" alt="Player 2" class="profile-pic" id="game-avatar-1">
                             <span class="avatar-icon">&#128126;</span>
                         </div>
-                        <span class="player-name">Player 4</span>
+                        <span class="player-name">Player 2</span>
                         <div class="turn-indicator"></div>
                     </div>
-                </div>
-
-                <!-- Player 3 (Yellow) - Bottom Right Corner -->
-                <div class="corner-player bottom-right">
                     <div class="player-card player-info yellow" data-player="2">
                         <div class="player-avatar yellow">
                             <img src="" alt="Player 3" class="profile-pic" id="game-avatar-2">

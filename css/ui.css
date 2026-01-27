@@ -473,61 +473,39 @@
     gap: 10px;
 }
 
-/* Board Layout - CSS Grid for corner positioning */
+/* Board Layout - Horizontal: Left Players | Board | Right Players */
 .board-layout {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto 1fr auto;
-    gap: 8px;
-    align-items: center;
-    justify-items: center;
-    width: min(95vw, 700px);
-    height: min(80vh, 600px);
-}
-
-/* Corner Player Positions */
-.corner-player {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 800px;
 }
 
-.corner-player.top-left {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-    align-self: start;
+/* Side Players - Vertical stack */
+.side-players {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+    min-width: 80px;
 }
 
-.corner-player.top-right {
-    grid-column: 3;
-    grid-row: 1;
-    justify-self: end;
-    align-self: start;
+.side-players.left-side {
+    align-items: flex-end;
 }
 
-.corner-player.bottom-left {
-    grid-column: 1;
-    grid-row: 3;
-    justify-self: start;
-    align-self: end;
+.side-players.right-side {
+    align-items: flex-start;
 }
 
-.corner-player.bottom-right {
-    grid-column: 3;
-    grid-row: 3;
-    justify-self: end;
-    align-self: end;
-}
-
-/* Board Center - spans middle */
+/* Board Center */
 .board-center {
-    grid-column: 1 / 4;
-    grid-row: 1 / 4;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1;
+    flex-shrink: 0;
 }
 
 /* Player Cards - Compact design */
@@ -1719,15 +1697,18 @@
 }
 
 /* Responsive Layout for Board and Players */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
     .board-layout {
-        width: 100vw;
-        height: auto;
-        gap: 5px;
+        gap: 8px;
+    }
+
+    .side-players {
+        min-width: 60px;
+        gap: 15px;
     }
 
     .ludo-board {
-        width: min(80vmin, 350px);
+        width: min(55vmin, 320px);
     }
 
     .player-card {
@@ -1751,13 +1732,43 @@
     }
 }
 
-@media (max-height: 700px) {
+@media (max-width: 500px) {
     .board-layout {
-        height: min(75vh, 500px);
+        gap: 5px;
+    }
+
+    .side-players {
+        min-width: 50px;
+        gap: 10px;
     }
 
     .ludo-board {
-        width: min(55vmin, 400px);
+        width: min(50vmin, 280px);
+    }
+
+    .player-card {
+        padding: 4px 6px;
+        min-width: 45px;
+    }
+
+    .player-card .player-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.6rem;
+        max-width: 40px;
+    }
+}
+
+@media (max-height: 650px) {
+    .ludo-board {
+        width: min(50vmin, 350px);
+    }
+
+    .side-players {
+        gap: 10px;
     }
 
     .player-card {
@@ -1765,7 +1776,7 @@
     }
 
     .player-card .player-avatar {
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
     }
 }
