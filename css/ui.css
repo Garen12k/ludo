@@ -465,47 +465,175 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     width: 100%;
     height: 100%;
-    padding: 20px;
+    padding: 10px;
     position: relative;
+    gap: 10px;
 }
 
-.game-area {
+/* Board Layout - CSS Grid for corner positioning */
+.board-layout {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    justify-items: center;
+    width: min(95vw, 700px);
+    height: min(80vh, 600px);
+}
+
+/* Corner Player Positions */
+.corner-player {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    flex: 1;
 }
 
-/* Player Panels */
-.player-panel {
+.corner-player.top-left {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    align-self: start;
+}
+
+.corner-player.top-right {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-self: start;
+}
+
+.corner-player.bottom-left {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+    align-self: end;
+}
+
+.corner-player.bottom-right {
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: end;
+    align-self: end;
+}
+
+/* Board Center - spans middle */
+.board-center {
+    grid-column: 1 / 4;
+    grid-row: 1 / 4;
     display: flex;
-    gap: 30px;
-    padding: 10px;
     align-items: center;
+    justify-content: center;
+    z-index: 1;
 }
 
-.player-panel.top {
-    margin-bottom: 10px;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 600px;
+/* Player Cards - Compact design */
+.player-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-width: 70px;
+    z-index: 10;
 }
 
-.player-panel.bottom {
-    margin-top: 10px;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 600px;
+.player-card.red {
+    border-color: rgba(255, 51, 102, 0.5);
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
 }
 
-.player-spacer {
-    flex: 1;
+.player-card.green {
+    border-color: rgba(51, 255, 102, 0.5);
+    box-shadow: 0 0 15px rgba(51, 255, 102, 0.3);
 }
 
-.player-info {
+.player-card.yellow {
+    border-color: rgba(255, 255, 51, 0.5);
+    box-shadow: 0 0 15px rgba(255, 255, 51, 0.3);
+}
+
+.player-card.blue {
+    border-color: rgba(51, 102, 255, 0.5);
+    box-shadow: 0 0 15px rgba(51, 102, 255, 0.3);
+}
+
+/* Active player card highlight */
+.player-card.active {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px currentColor;
+}
+
+.player-card.red.active {
+    box-shadow: 0 0 25px rgba(255, 51, 102, 0.7);
+}
+
+.player-card.green.active {
+    box-shadow: 0 0 25px rgba(51, 255, 102, 0.7);
+}
+
+.player-card.yellow.active {
+    box-shadow: 0 0 25px rgba(255, 255, 51, 0.7);
+}
+
+.player-card.blue.active {
+    box-shadow: 0 0 25px rgba(51, 102, 255, 0.7);
+}
+
+.player-card .player-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    max-width: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.player-card .player-avatar {
+    width: 40px;
+    height: 40px;
+}
+
+.player-card .turn-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.player-card.active .turn-indicator {
+    background: #fff;
+    box-shadow: 0 0 10px #fff;
+    animation: turnPulse 1s ease-in-out infinite;
+}
+
+@keyframes turnPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+/* Dice Area - Below board */
+.dice-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    z-index: 20;
+}
+
+/* Player-info base - overridden by player-card when used together */
+.player-info:not(.player-card) {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -516,12 +644,13 @@
     transition: all 0.3s ease;
 }
 
-.player-info.vertical {
+.player-info.vertical:not(.player-card) {
     flex-direction: column;
     text-align: center;
 }
 
-.player-info.active {
+/* Active state for player cards */
+.player-info.active:not(.player-card) {
     border-color: rgba(100, 100, 255, 0.5);
     box-shadow: 0 0 20px rgba(100, 100, 255, 0.3);
 }
@@ -1586,5 +1715,57 @@
     }
     to {
         opacity: 0;
+    }
+}
+
+/* Responsive Layout for Board and Players */
+@media (max-width: 600px) {
+    .board-layout {
+        width: 100vw;
+        height: auto;
+        gap: 5px;
+    }
+
+    .ludo-board {
+        width: min(80vmin, 350px);
+    }
+
+    .player-card {
+        padding: 5px 8px;
+        min-width: 55px;
+    }
+
+    .player-card .player-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.65rem;
+        max-width: 50px;
+    }
+
+    .dice-area {
+        gap: 10px;
+        padding: 5px;
+    }
+}
+
+@media (max-height: 700px) {
+    .board-layout {
+        height: min(75vh, 500px);
+    }
+
+    .ludo-board {
+        width: min(55vmin, 400px);
+    }
+
+    .player-card {
+        padding: 4px 6px;
+    }
+
+    .player-card .player-avatar {
+        width: 30px;
+        height: 30px;
     }
 }

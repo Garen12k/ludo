@@ -15,7 +15,7 @@
     grid-template-columns: repeat(15, 1fr);
     grid-template-rows: repeat(15, 1fr);
     aspect-ratio: 1;
-    width: min(70vmin, 600px);
+    width: min(65vmin, 480px);
     background: radial-gradient(
         circle at center,
         rgba(20, 15, 50, 0.95),
