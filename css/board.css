@@ -190,27 +190,27 @@
 }
 
 .board-cell.red-path {
-    background: linear-gradient(90deg, rgba(255, 51, 102, 0.5), rgba(255, 51, 102, 0.3));
-    border: 1px solid rgba(255, 51, 102, 0.5);
-    box-shadow: inset 0 0 10px rgba(255, 51, 102, 0.3);
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .board-cell.green-path {
-    background: linear-gradient(180deg, rgba(51, 255, 102, 0.5), rgba(51, 255, 102, 0.3));
-    border: 1px solid rgba(51, 255, 102, 0.5);
-    box-shadow: inset 0 0 10px rgba(51, 255, 102, 0.3);
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .board-cell.yellow-path {
-    background: linear-gradient(270deg, rgba(255, 255, 51, 0.5), rgba(255, 255, 51, 0.3));
-    border: 1px solid rgba(255, 255, 51, 0.5);
-    box-shadow: inset 0 0 10px rgba(255, 255, 51, 0.3);
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .board-cell.blue-path {
-    background: linear-gradient(0deg, rgba(51, 102, 255, 0.5), rgba(51, 102, 255, 0.3));
-    border: 1px solid rgba(51, 102, 255, 0.5);
-    box-shadow: inset 0 0 10px rgba(51, 102, 255, 0.3);
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 /* Entry Points - Where tokens enter the track */
