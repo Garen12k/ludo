@@ -2790,48 +2790,34 @@
                 modal.style.display = 'flex';
                 this.loadSavedProfileImages();
 
-                // In online game, only show the local player's profile
+                // Determine which player slot to show
+                // Online: show assigned slot, Offline: show Player 1 (human)
+                let mySlot = 0;
                 if (gameState.isOnlineGame && networkManager && networkManager.isOnline) {
-                    const mySlot = networkManager.playerSlot;
-                    const profileItems = modal.querySelectorAll('.profile-item');
-
-                    profileItems.forEach((item, index) => {
-                        const playerIndex = parseInt(item.dataset.player);
-                        if (playerIndex === mySlot) {
-                            item.style.display = 'block';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-
-                    // Hide reset all button in online mode
-                    const resetAllBtn = document.getElementById('btn-reset-all-profiles');
-                    if (resetAllBtn) resetAllBtn.style.display = 'none';
-
-                    // Update title
-                    const title = modal.querySelector('.profile-title');
-                    if (title) title.textContent = 'Your Profile Picture';
-
-                    const subtitle = modal.querySelector('.profile-subtitle');
-                    if (subtitle) subtitle.textContent = 'Click to set your picture';
-                } else {
-                    // Show all players in offline mode
-                    const profileItems = modal.querySelectorAll('.profile-item');
-                    profileItems.forEach(item => {
-                        item.style.display = 'block';
-                    });
-
-                    // Show reset all button
-                    const resetAllBtn = document.getElementById('btn-reset-all-profiles');
-                    if (resetAllBtn) resetAllBtn.style.display = 'block';
-
-                    // Reset title
-                    const title = modal.querySelector('.profile-title');
-                    if (title) title.textContent = 'Player Pictures';
-
-                    const subtitle = modal.querySelector('.profile-subtitle');
-                    if (subtitle) subtitle.textContent = 'Click on a player to set their picture';
+                    mySlot = networkManager.playerSlot;
                 }
+
+                // Only show the local player's profile
+                const profileItems = modal.querySelectorAll('.profile-item');
+                profileItems.forEach((item) => {
+                    const playerIndex = parseInt(item.dataset.player);
+                    if (playerIndex === mySlot) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Hide reset all button (only one player shown)
+                const resetAllBtn = document.getElementById('btn-reset-all-profiles');
+                if (resetAllBtn) resetAllBtn.style.display = 'none';
+
+                // Update title
+                const title = modal.querySelector('.profile-title');
+                if (title) title.textContent = 'Your Profile Picture';
+
+                const subtitle = modal.querySelector('.profile-subtitle');
+                if (subtitle) subtitle.textContent = 'Click to set your picture';
             }
         }
 
