@@ -79,6 +79,24 @@
     border: none;
 }
 
+/* Remove colors from home paths inside center area */
+.board-cell.center-area.red-path,
+.board-cell.center-area.green-path,
+.board-cell.center-area.yellow-path,
+.board-cell.center-area.blue-path,
+.board-cell.red-path[data-row="7"][data-col="6"],
+.board-cell.red-path[data-row="7"][data-col="7"],
+.board-cell.green-path[data-row="6"][data-col="7"],
+.board-cell.green-path[data-row="7"][data-col="7"],
+.board-cell.yellow-path[data-row="7"][data-col="8"],
+.board-cell.yellow-path[data-row="7"][data-col="7"],
+.board-cell.blue-path[data-row="8"][data-col="7"],
+.board-cell.blue-path[data-row="7"][data-col="7"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
 /* Track Cells - Main path around the board */
 .board-cell.track-cell {
     background: rgba(100, 150, 255, 0.15);
