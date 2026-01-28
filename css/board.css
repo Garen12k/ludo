@@ -75,8 +75,8 @@
 
 /* Center area */
 .board-cell.center-area {
-    background: radial-gradient(circle, rgba(150, 100, 255, 0.3), rgba(100, 50, 200, 0.15));
-    border: 1px solid rgba(150, 100, 255, 0.4);
+    background: transparent;
+    border: none;
 }
 
 /* Track Cells - Main path around the board */
