@@ -2814,10 +2814,14 @@
 
                 // Update title
                 const title = modal.querySelector('.profile-title');
-                if (title) title.textContent = 'Your Profile Picture';
+                if (title) title.textContent = 'Profile Picture';
 
                 const subtitle = modal.querySelector('.profile-subtitle');
-                if (subtitle) subtitle.textContent = 'Click to set your picture';
+                if (subtitle) subtitle.textContent = 'Add a photo to personalize your game';
+
+                // Hide the label since only one profile is shown
+                const label = modal.querySelector('.profile-item:not([style*="display: none"]) .profile-label');
+                if (label) label.style.display = 'none';
             }
         }
 
