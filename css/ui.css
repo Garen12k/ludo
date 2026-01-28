@@ -1019,6 +1019,12 @@
     background: rgba(0, 255, 100, 0.15);
     border-bottom: 1px solid rgba(0, 255, 100, 0.3);
     border-radius: 8px 8px 0 0;
+    cursor: grab;
+    user-select: none;
+}
+
+.debug-header:active {
+    cursor: grabbing;
 }
 
 .debug-title {

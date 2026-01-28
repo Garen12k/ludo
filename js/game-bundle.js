@@ -4263,6 +4263,7 @@
 
             this.setupControls();
             this.setupToolButtons();
+            this.setupDraggable();
             this.interceptConsole();
             this.setupEventListeners();
             this.startStatusUpdater();
@@ -4283,6 +4284,102 @@
             if (this.openBtn) {
                 this.openBtn.addEventListener('click', () => this.show());
             }
+        }
+
+        setupDraggable() {
+            const header = this.panel?.querySelector('.debug-header');
+            if (!header || !this.panel) return;
+
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            header.addEventListener('mousedown', (e) => {
+                // Don't drag if clicking on buttons
+                if (e.target.closest('.debug-btn') || e.target.closest('.debug-controls')) return;
+
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                const rect = this.panel.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+
+                // Switch from bottom/right to top/left positioning
+                this.panel.style.bottom = 'auto';
+                this.panel.style.right = 'auto';
+                this.panel.style.left = startLeft + 'px';
+                this.panel.style.top = startTop + 'px';
+
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
+
+                // Keep within viewport
+                const maxX = window.innerWidth - this.panel.offsetWidth;
+                const maxY = window.innerHeight - this.panel.offsetHeight;
+
+                newLeft = Math.max(0, Math.min(newLeft, maxX));
+                newTop = Math.max(0, Math.min(newTop, maxY));
+
+                this.panel.style.left = newLeft + 'px';
+                this.panel.style.top = newTop + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch support for mobile
+            header.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.debug-btn') || e.target.closest('.debug-controls')) return;
+
+                isDragging = true;
+                const touch = e.touches[0];
+                startX = touch.clientX;
+                startY = touch.clientY;
+
+                const rect = this.panel.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+
+                this.panel.style.bottom = 'auto';
+                this.panel.style.right = 'auto';
+                this.panel.style.left = startLeft + 'px';
+                this.panel.style.top = startTop + 'px';
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+
+                const touch = e.touches[0];
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+
+                let newLeft = startLeft + dx;
+                let newTop = startTop + dy;
+
+                const maxX = window.innerWidth - this.panel.offsetWidth;
+                const maxY = window.innerHeight - this.panel.offsetHeight;
+
+                newLeft = Math.max(0, Math.min(newLeft, maxX));
+                newTop = Math.max(0, Math.min(newTop, maxY));
+
+                this.panel.style.left = newLeft + 'px';
+                this.panel.style.top = newTop + 'px';
+            }, { passive: true });
+
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
         }
 
         setupToolButtons() {
