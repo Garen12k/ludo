@@ -1671,27 +1671,51 @@
         }
 
         showScreen(screenId) {
+            // Hide all screens
+            const loginScreen = document.getElementById('login-screen');
+            if (loginScreen) {
+                loginScreen.classList.remove('active');
+                loginScreen.style.display = 'none';
+            }
             this.mainMenu.classList.remove('active');
+            this.mainMenu.style.display = 'none';
             this.setupScreen.classList.remove('active');
+            this.setupScreen.style.display = 'none';
             this.gameScreen.classList.remove('active');
-            if (this.onlineMenu) this.onlineMenu.classList.remove('active');
-            if (this.roomLobby) this.roomLobby.classList.remove('active');
+            this.gameScreen.style.display = 'none';
+            if (this.onlineMenu) {
+                this.onlineMenu.classList.remove('active');
+                this.onlineMenu.style.display = 'none';
+            }
+            if (this.roomLobby) {
+                this.roomLobby.classList.remove('active');
+                this.roomLobby.style.display = 'none';
+            }
 
             switch (screenId) {
                 case 'menu':
+                    this.mainMenu.style.display = 'flex';
                     this.mainMenu.classList.add('active');
                     break;
                 case 'setup':
+                    this.setupScreen.style.display = 'flex';
                     this.setupScreen.classList.add('active');
                     break;
                 case 'game':
+                    this.gameScreen.style.display = 'flex';
                     this.gameScreen.classList.add('active');
                     break;
                 case 'online-menu':
-                    if (this.onlineMenu) this.onlineMenu.classList.add('active');
+                    if (this.onlineMenu) {
+                        this.onlineMenu.style.display = 'flex';
+                        this.onlineMenu.classList.add('active');
+                    }
                     break;
                 case 'room-lobby':
-                    if (this.roomLobby) this.roomLobby.classList.add('active');
+                    if (this.roomLobby) {
+                        this.roomLobby.style.display = 'flex';
+                        this.roomLobby.classList.add('active');
+                    }
                     break;
             }
         }
