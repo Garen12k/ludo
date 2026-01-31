@@ -163,6 +163,34 @@
     }
 
     // ============================================
+    // XP & LEVELING SYSTEM
+    // ============================================
+
+    const XP_CONFIG = {
+        // XP rewards for actions
+        REWARDS: {
+            WIN_GAME: 100,
+            CAPTURE_TOKEN: 15,
+            FINISH_TOKEN: 25,
+            PLAY_GAME: 20,
+            ROLL_SIX: 5
+        },
+        // Level thresholds (XP needed for each level)
+        getXPForLevel: (level) => Math.floor(100 * Math.pow(1.2, level - 1)),
+        // Level rewards
+        LEVEL_REWARDS: {
+            5: { title: 'Rookie', reward: 'New title unlocked!' },
+            10: { title: 'Player', reward: 'New title unlocked!' },
+            15: { title: 'Skilled', reward: 'New title unlocked!' },
+            20: { title: 'Expert', reward: 'New title unlocked!' },
+            25: { title: 'Master', reward: 'New title unlocked!' },
+            30: { title: 'Champion', reward: 'New title unlocked!' },
+            40: { title: 'Legend', reward: 'New title unlocked!' },
+            50: { title: 'Cosmic', reward: 'New title unlocked!' }
+        }
+    };
+
+    // ============================================
     // EVENT BUS
     // ============================================
 
@@ -203,7 +231,11 @@
         // Effect events
         EFFECT_CAPTURE: 'effect:capture',
         EFFECT_SHAKE: 'effect:shake',
-        EFFECT_VICTORY: 'effect:victory'
+        EFFECT_VICTORY: 'effect:victory',
+
+        // XP events
+        XP_GAINED: 'xp:gained',
+        LEVEL_UP: 'xp:levelUp'
     };
 
     class EventBus {
@@ -2508,6 +2540,211 @@
     }
 
     // ============================================
+    // XP MANAGER
+    // ============================================
+
+    class XPManager {
+        constructor() {
+            this.data = this.load();
+            this.createUI();
+            this.setupEventListeners();
+        }
+
+        load() {
+            const saved = localStorage.getItem('spaceludo_xp');
+            return saved ? JSON.parse(saved) : {
+                xp: 0,
+                level: 1,
+                totalXP: 0,
+                gamesPlayed: 0,
+                wins: 0,
+                captures: 0,
+                title: 'Newbie'
+            };
+        }
+
+        save() {
+            localStorage.setItem('spaceludo_xp', JSON.stringify(this.data));
+        }
+
+        createUI() {
+            // Create XP panel
+            this.panel = document.createElement('div');
+            this.panel.id = 'xp-panel';
+            this.panel.className = 'xp-panel';
+            this.panel.innerHTML = `
+                <div class="xp-level-badge">
+                    <span class="level-number">${this.data.level}</span>
+                </div>
+                <div class="xp-info">
+                    <div class="xp-title">${this.data.title}</div>
+                    <div class="xp-bar-container">
+                        <div class="xp-bar-fill"></div>
+                    </div>
+                    <div class="xp-text">0 / 100 XP</div>
+                </div>
+            `;
+
+            const gameScreen = document.getElementById('game-screen');
+            if (gameScreen) {
+                gameScreen.appendChild(this.panel);
+            }
+
+            // Create level up popup
+            this.levelUpPopup = document.createElement('div');
+            this.levelUpPopup.id = 'level-up-popup';
+            this.levelUpPopup.className = 'level-up-popup';
+            this.levelUpPopup.innerHTML = `
+                <div class="level-up-content">
+                    <div class="level-up-stars">★</div>
+                    <div class="level-up-title">LEVEL UP!</div>
+                    <div class="level-up-level">Level <span id="new-level">2</span></div>
+                    <div class="level-up-reward" id="level-reward"></div>
+                </div>
+            `;
+            document.body.appendChild(this.levelUpPopup);
+
+            // Create XP gain popup
+            this.xpPopup = document.createElement('div');
+            this.xpPopup.id = 'xp-gain-popup';
+            this.xpPopup.className = 'xp-gain-popup';
+            document.body.appendChild(this.xpPopup);
+
+            this.updateUI();
+        }
+
+        updateUI() {
+            const levelEl = this.panel.querySelector('.level-number');
+            const titleEl = this.panel.querySelector('.xp-title');
+            const barEl = this.panel.querySelector('.xp-bar-fill');
+            const textEl = this.panel.querySelector('.xp-text');
+
+            const xpNeeded = XP_CONFIG.getXPForLevel(this.data.level);
+            const progress = (this.data.xp / xpNeeded) * 100;
+
+            if (levelEl) levelEl.textContent = this.data.level;
+            if (titleEl) titleEl.textContent = this.data.title;
+            if (barEl) barEl.style.width = `${Math.min(progress, 100)}%`;
+            if (textEl) textEl.textContent = `${this.data.xp} / ${xpNeeded} XP`;
+        }
+
+        addXP(amount, reason = '') {
+            this.data.xp += amount;
+            this.data.totalXP += amount;
+
+            // Show XP gain popup
+            this.showXPGain(amount, reason);
+
+            // Check for level up
+            let levelsGained = 0;
+            while (this.data.xp >= XP_CONFIG.getXPForLevel(this.data.level)) {
+                this.data.xp -= XP_CONFIG.getXPForLevel(this.data.level);
+                this.data.level++;
+                levelsGained++;
+
+                // Check for title reward
+                const reward = XP_CONFIG.LEVEL_REWARDS[this.data.level];
+                if (reward) {
+                    this.data.title = reward.title;
+                }
+            }
+
+            if (levelsGained > 0) {
+                this.showLevelUp();
+                eventBus.emit(GameEvents.LEVEL_UP, { level: this.data.level, title: this.data.title });
+            }
+
+            this.save();
+            this.updateUI();
+
+            eventBus.emit(GameEvents.XP_GAINED, { amount, total: this.data.totalXP });
+        }
+
+        showXPGain(amount, reason) {
+            const popup = this.xpPopup;
+            popup.textContent = `+${amount} XP${reason ? ` (${reason})` : ''}`;
+            popup.classList.add('show');
+
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 1500);
+        }
+
+        showLevelUp() {
+            const popup = this.levelUpPopup;
+            const levelEl = document.getElementById('new-level');
+            const rewardEl = document.getElementById('level-reward');
+
+            if (levelEl) levelEl.textContent = this.data.level;
+
+            const reward = XP_CONFIG.LEVEL_REWARDS[this.data.level];
+            if (rewardEl) {
+                rewardEl.textContent = reward ? `"${reward.title}" ${reward.reward}` : '';
+                rewardEl.style.display = reward ? 'block' : 'none';
+            }
+
+            popup.classList.add('show');
+
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+
+        show() {
+            this.panel.classList.add('visible');
+        }
+
+        hide() {
+            this.panel.classList.remove('visible');
+        }
+
+        setupEventListeners() {
+            // Track game events for XP
+            eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
+                // Only award XP to human players
+                if (!gameState.players[data.capturer.playerIndex]?.isAI) {
+                    this.data.captures++;
+                    this.addXP(XP_CONFIG.REWARDS.CAPTURE_TOKEN, 'Capture');
+                }
+            });
+
+            eventBus.on(GameEvents.TOKEN_FINISH, (data) => {
+                if (!data.player?.isAI) {
+                    this.addXP(XP_CONFIG.REWARDS.FINISH_TOKEN, 'Home');
+                }
+            });
+
+            eventBus.on(GameEvents.PLAYER_WIN, (data) => {
+                if (!data.player?.isAI) {
+                    this.data.wins++;
+                    this.addXP(XP_CONFIG.REWARDS.WIN_GAME, 'Victory!');
+                }
+            });
+
+            eventBus.on(GameEvents.DICE_ROLLED, (data) => {
+                if (data.value === 6 && !data.player?.isAI) {
+                    this.addXP(XP_CONFIG.REWARDS.ROLL_SIX, 'Lucky 6');
+                }
+            });
+
+            eventBus.on(GameEvents.GAME_START, () => {
+                this.data.gamesPlayed++;
+                this.save();
+                this.show();
+            });
+
+            eventBus.on(GameEvents.GAME_END, () => {
+                // Award participation XP
+                this.addXP(XP_CONFIG.REWARDS.PLAY_GAME, 'Game played');
+            });
+        }
+
+        getStats() {
+            return { ...this.data };
+        }
+    }
+
+    // ============================================
     // SOUND MANAGER
     // ============================================
 
@@ -4738,6 +4975,9 @@
         // Initialize sound
         const soundManager = new SoundManager();
 
+        // Initialize XP system
+        const xpManager = new XPManager();
+
         // Initialize chat system
         const chatSystem = new ChatSystem();
 
@@ -4767,7 +5007,8 @@
             networkManager,
             onlineLobbyController,
             tokenRenderer,
-            debugLogger
+            debugLogger,
+            xpManager
         };
 
         console.log('Space Ludo initialized!');
