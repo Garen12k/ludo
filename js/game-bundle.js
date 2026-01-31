@@ -1743,6 +1743,10 @@
 
             const colors = ['red', 'green', 'yellow', 'blue'];
 
+            // Get logged in username for Player 1
+            const loggedInUser = localStorage.getItem('spaceludo_user');
+            const username = loggedInUser ? JSON.parse(loggedInUser).username : null;
+
             for (let i = 0; i < 4; i++) {
                 const row = document.createElement('div');
                 row.className = 'player-input-row';
@@ -1755,6 +1759,11 @@
                 nameInput.placeholder = `Player ${i + 1}`;
                 nameInput.className = 'player-name-input';
                 nameInput.dataset.index = i;
+
+                // Pre-fill Player 1 with logged in username
+                if (i === 0 && username) {
+                    nameInput.value = username;
+                }
 
                 row.appendChild(colorDot);
                 row.appendChild(nameInput);
@@ -2536,6 +2545,254 @@
                     // TOKEN_MOVE_COMPLETE event will handle extra turns
                 }
             }
+        }
+    }
+
+    // ============================================
+    // LOGIN MANAGER
+    // ============================================
+
+    class LoginManager {
+        constructor() {
+            this.user = this.load();
+            this.setupUI();
+            this.setupEventListeners();
+        }
+
+        load() {
+            const saved = localStorage.getItem('spaceludo_user');
+            return saved ? JSON.parse(saved) : null;
+        }
+
+        save() {
+            localStorage.setItem('spaceludo_user', JSON.stringify(this.user));
+        }
+
+        setupUI() {
+            // Check if user is already logged in
+            if (this.user) {
+                this.showWelcomeBack();
+            }
+
+            // Show stats in footer if available
+            this.updateLoginStats();
+        }
+
+        setupEventListeners() {
+            // Avatar selection
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    avatarOptions.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                });
+            });
+
+            // Login button
+            const loginBtn = document.getElementById('btn-login');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => this.handleLogin());
+            }
+
+            // Enter key on input
+            const usernameInput = document.getElementById('login-username');
+            if (usernameInput) {
+                usernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.handleLogin();
+                    }
+                });
+
+                // If returning user, pre-fill username
+                if (this.user) {
+                    usernameInput.value = this.user.username;
+                    // Select their avatar
+                    const savedAvatar = document.querySelector(`.avatar-option[data-avatar="${this.user.avatar}"]`);
+                    if (savedAvatar) {
+                        document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                        savedAvatar.classList.add('selected');
+                    }
+                }
+            }
+        }
+
+        showWelcomeBack() {
+            const loginForm = document.getElementById('login-form');
+            if (!loginForm || !this.user) return;
+
+            // Add welcome back message
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'welcome-back';
+            welcomeDiv.innerHTML = `
+                <div class="welcome-back-text">Welcome back!</div>
+                <div class="welcome-back-name">${this.user.avatar} ${this.user.username}</div>
+            `;
+            loginForm.insertBefore(welcomeDiv, loginForm.firstChild);
+        }
+
+        updateLoginStats() {
+            const statsContainer = document.getElementById('login-stats');
+            if (!statsContainer) return;
+
+            // Get XP data if available
+            const xpData = localStorage.getItem('spaceludo_xp');
+            if (xpData) {
+                const data = JSON.parse(xpData);
+                statsContainer.innerHTML = `
+                    <div class="login-stat">
+                        <span class="login-stat-value">${data.level}</span>
+                        <span class="login-stat-label">Level</span>
+                    </div>
+                    <div class="login-stat">
+                        <span class="login-stat-value">${data.wins || 0}</span>
+                        <span class="login-stat-label">Wins</span>
+                    </div>
+                    <div class="login-stat">
+                        <span class="login-stat-value">${data.gamesPlayed || 0}</span>
+                        <span class="login-stat-label">Games</span>
+                    </div>
+                `;
+            }
+        }
+
+        handleLogin() {
+            const usernameInput = document.getElementById('login-username');
+            const errorEl = document.getElementById('login-error');
+            const selectedAvatar = document.querySelector('.avatar-option.selected');
+
+            const username = usernameInput?.value.trim();
+
+            // Validation
+            if (!username) {
+                this.showError('Please enter a username');
+                usernameInput?.focus();
+                return;
+            }
+
+            if (username.length < 2) {
+                this.showError('Username must be at least 2 characters');
+                usernameInput?.focus();
+                return;
+            }
+
+            if (username.length > 15) {
+                this.showError('Username must be 15 characters or less');
+                usernameInput?.focus();
+                return;
+            }
+
+            // Get avatar
+            const avatar = selectedAvatar?.dataset.avatar || '🚀';
+
+            // Save user
+            this.user = {
+                username,
+                avatar,
+                createdAt: this.user?.createdAt || Date.now(),
+                lastLogin: Date.now()
+            };
+            this.save();
+
+            // Transition to main menu
+            this.transitionToMenu();
+        }
+
+        showError(message) {
+            const errorEl = document.getElementById('login-error');
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+                setTimeout(() => {
+                    errorEl.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        transitionToMenu() {
+            const loginScreen = document.getElementById('login-screen');
+            const mainMenu = document.getElementById('main-menu');
+
+            if (loginScreen && mainMenu) {
+                // Fade out login
+                loginScreen.style.opacity = '0';
+                loginScreen.style.transform = 'scale(0.95)';
+                loginScreen.style.transition = 'all 0.4s ease';
+
+                setTimeout(() => {
+                    loginScreen.classList.remove('active');
+                    loginScreen.style.display = 'none';
+
+                    mainMenu.classList.add('active');
+                    mainMenu.style.opacity = '0';
+                    mainMenu.style.display = 'flex';
+
+                    // Create user display
+                    this.createUserDisplay();
+
+                    // Fade in menu
+                    requestAnimationFrame(() => {
+                        mainMenu.style.transition = 'opacity 0.4s ease';
+                        mainMenu.style.opacity = '1';
+                    });
+                }, 400);
+            }
+        }
+
+        createUserDisplay() {
+            if (!this.user) return;
+
+            // Remove existing display
+            const existing = document.getElementById('user-display');
+            if (existing) existing.remove();
+
+            // Get XP data for level
+            const xpData = localStorage.getItem('spaceludo_xp');
+            const level = xpData ? JSON.parse(xpData).level : 1;
+            const title = xpData ? JSON.parse(xpData).title : 'Newbie';
+
+            const display = document.createElement('div');
+            display.id = 'user-display';
+            display.className = 'user-display';
+            display.innerHTML = `
+                <div class="user-avatar">${this.user.avatar}</div>
+                <div class="user-info">
+                    <span class="user-name">${this.user.username}</span>
+                    <span class="user-level">Lv.${level} ${title}</span>
+                </div>
+            `;
+
+            // Add click to show profile/logout options
+            display.addEventListener('click', () => this.showUserMenu());
+
+            document.body.appendChild(display);
+        }
+
+        showUserMenu() {
+            // For now, just log out on click (can expand later)
+            if (confirm('Log out?')) {
+                this.logout();
+            }
+        }
+
+        logout() {
+            // Don't delete XP data, just user session
+            this.user = null;
+            localStorage.removeItem('spaceludo_user');
+
+            // Reload page
+            location.reload();
+        }
+
+        getUser() {
+            return this.user;
+        }
+
+        getUsername() {
+            return this.user?.username || 'Player';
+        }
+
+        getAvatar() {
+            return this.user?.avatar || '🚀';
         }
     }
 
@@ -4978,6 +5235,9 @@
         // Initialize XP system
         const xpManager = new XPManager();
 
+        // Initialize login system
+        const loginManager = new LoginManager();
+
         // Initialize chat system
         const chatSystem = new ChatSystem();
 
@@ -5008,7 +5268,8 @@
             onlineLobbyController,
             tokenRenderer,
             debugLogger,
-            xpManager
+            xpManager,
+            loginManager
         };
 
         console.log('Space Ludo initialized!');

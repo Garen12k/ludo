@@ -30,8 +30,53 @@
         <div class="nebula nebula-4"></div>
     </div>
 
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">🛸</div>
+                    <h1 class="login-title">SPACE LUDO</h1>
+                    <p class="login-subtitle">Enter the Galaxy</p>
+                </div>
+
+                <div class="login-form" id="login-form">
+                    <div class="input-group">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="login-username" class="login-input" placeholder="Username" maxlength="15" autocomplete="off">
+                    </div>
+
+                    <div class="login-avatar-section">
+                        <p class="avatar-label">Choose Avatar</p>
+                        <div class="avatar-options" id="avatar-options">
+                            <div class="avatar-option selected" data-avatar="🚀">🚀</div>
+                            <div class="avatar-option" data-avatar="👨‍🚀">👨‍🚀</div>
+                            <div class="avatar-option" data-avatar="👩‍🚀">👩‍🚀</div>
+                            <div class="avatar-option" data-avatar="🛸">🛸</div>
+                            <div class="avatar-option" data-avatar="🌟">🌟</div>
+                            <div class="avatar-option" data-avatar="🤖">🤖</div>
+                            <div class="avatar-option" data-avatar="👾">👾</div>
+                            <div class="avatar-option" data-avatar="🎮">🎮</div>
+                        </div>
+                    </div>
+
+                    <button class="login-btn" id="btn-login">
+                        <span class="btn-text">LAUNCH</span>
+                        <span class="btn-icon-arrow">→</span>
+                    </button>
+
+                    <div class="login-error" id="login-error"></div>
+                </div>
+
+                <div class="login-footer">
+                    <div class="login-stats" id="login-stats"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Menu Screen -->
-    <div id="main-menu" class="screen active">
+    <div id="main-menu" class="screen">
         <!-- Shanks Background Image -->
         <div class="menu-background-image">
             <img src="images/shanks12.gif" alt="Shanks" class="shanks-image">
