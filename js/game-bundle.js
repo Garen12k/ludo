@@ -2317,8 +2317,8 @@
             this.timerProgress = document.getElementById('timer-progress');
             this.cancelButton = document.getElementById('cancel-auto-play');
 
-            this.countdown = 10;
-            this.maxTime = 10;
+            this.countdown = 5;
+            this.maxTime = 5;
             this.intervalId = null;
             this.isActive = false;
             this.isCancelled = false;
