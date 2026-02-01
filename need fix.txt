@@ -1,0 +1,20 @@
+player when invite other cant see there name it shows only player.
+
+edit auto-play to be showen after 15 second then auto can apper and play.
+
+add theme sound in backgroud.
+
+auto play apear to everyone, it need to show only to the player and other no need to see it.
+
+add optin to remove auto-play.
+
+player getting exp when he is not in the game.
+
+sometime when dice show 3 token make 4 move it should be 3 move and when dice is 4 token make 3 move.
+
+when dice near to his line sometime skip it and shouldnt skip line at all.
+
+
+
+
+ 

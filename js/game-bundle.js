@@ -1251,10 +1251,8 @@
 
             await this.waitWhilePaused();
 
-            // Only handle AI if we're supposed to (non-online OR host in online)
-            if (player.isAI && (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isHost))) {
-                await this.handleAITurn();
-            }
+            // Human controls all players - no automatic AI turns
+            // AI logic removed so player can roll dice and move tokens for everyone
         },
 
         async rollDice() {
@@ -1301,10 +1299,8 @@
 
             gameState.turnPhase = TURN_PHASE.SELECTING;
 
-            if (gameState.getCurrentPlayer().isAI) {
-                const move = await AIController.selectMove(validMoves, gameState);
-                await this.executeMove(move);
-            }
+            // Human controls all players - no automatic AI move selection
+            // Player must click on token to move it
 
             return value;
         },
@@ -1394,11 +1390,7 @@
                 gameState.turnPhase = TURN_PHASE.WAITING;
                 gameState.selectToken(null);
                 gameState.setValidMoves([]);
-
-                if (gameState.getCurrentPlayer().isAI) {
-                    await this.delay(ANIMATION_DURATIONS.AI_THINK);
-                    await this.rollDice();
-                }
+                // Human controls all - no auto roll for AI, player clicks dice
             } else {
                 this.endTurn();
             }
@@ -1673,14 +1665,16 @@
             eventBus.on(GameEvents.DICE_ROLLED, (data) => this.showResult(data.value));
 
             this.rollButton.addEventListener('click', () => {
-                if (gameState.turnPhase === TURN_PHASE.WAITING && !gameState.getCurrentPlayer().isAI) {
+                // Allow rolling dice for any player (human controls all)
+                if (gameState.turnPhase === TURN_PHASE.WAITING) {
                     TurnManager.rollDice();
                 }
             });
 
             // Spacebar to roll
             document.addEventListener('keydown', (e) => {
-                if (e.code === 'Space' && gameState.turnPhase === TURN_PHASE.WAITING && !gameState.getCurrentPlayer().isAI) {
+                // Allow rolling dice for any player (human controls all)
+                if (e.code === 'Space' && gameState.turnPhase === TURN_PHASE.WAITING) {
                     e.preventDefault();
                     TurnManager.rollDice();
                 }
