@@ -1675,16 +1675,22 @@
             eventBus.on(GameEvents.DICE_ROLLED, (data) => this.showResult(data.value));
 
             this.rollButton.addEventListener('click', () => {
-                // Only allow rolling dice on human player's turn
-                if (gameState.turnPhase === TURN_PHASE.WAITING && !gameState.getCurrentPlayer().isAI) {
+                // Only allow rolling dice on YOUR turn (not other players or AI)
+                const currentPlayer = gameState.getCurrentPlayer();
+                const isMyTurn = !currentPlayer.isAI &&
+                    (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isLocalPlayerTurn()));
+                if (gameState.turnPhase === TURN_PHASE.WAITING && isMyTurn) {
                     TurnManager.rollDice();
                 }
             });
 
             // Spacebar to roll
             document.addEventListener('keydown', (e) => {
-                // Only allow rolling dice on human player's turn
-                if (e.code === 'Space' && gameState.turnPhase === TURN_PHASE.WAITING && !gameState.getCurrentPlayer().isAI) {
+                // Only allow rolling dice on YOUR turn (not other players or AI)
+                const currentPlayer = gameState.getCurrentPlayer();
+                const isMyTurn = !currentPlayer.isAI &&
+                    (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isLocalPlayerTurn()));
+                if (e.code === 'Space' && gameState.turnPhase === TURN_PHASE.WAITING && isMyTurn) {
                     e.preventDefault();
                     TurnManager.rollDice();
                 }
