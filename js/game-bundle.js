@@ -1313,7 +1313,15 @@
             }
         },
 
+        isAutoPlayEnabled() {
+            const toggle = document.getElementById('autoplay-toggle');
+            return toggle ? toggle.checked : true;
+        },
+
         startAutoPlayTimer() {
+            // Check if auto-play is enabled in settings
+            if (!this.isAutoPlayEnabled()) return;
+
             const player = gameState.getCurrentPlayer();
             // Don't start timer for AI players or in online games where it's not your turn
             if (player.isAI) return;
@@ -3036,9 +3044,20 @@
         constructor() {
             this.context = null;
             this.enabled = true;
+            this.musicEnabled = false;
             this.initialized = false;
+            this.musicNodes = [];
+            this.musicGain = null;
 
             this.setupEventListeners();
+            this.loadMusicSetting();
+        }
+
+        loadMusicSetting() {
+            const saved = localStorage.getItem('spaceludo_music');
+            this.musicEnabled = saved === 'true';
+            const toggle = document.getElementById('music-toggle');
+            if (toggle) toggle.checked = this.musicEnabled;
         }
 
         setupEventListeners() {
@@ -3050,6 +3069,24 @@
             eventBus.on(GameEvents.TOKEN_MOVE, () => this.playMove());
             eventBus.on(GameEvents.TOKEN_CAPTURE, () => this.playCapture());
             eventBus.on(GameEvents.PLAYER_WIN, () => this.playVictory());
+
+            // Music toggle handler
+            document.getElementById('music-toggle')?.addEventListener('change', (e) => {
+                this.musicEnabled = e.target.checked;
+                localStorage.setItem('spaceludo_music', e.target.checked ? 'true' : 'false');
+                if (e.target.checked) {
+                    this.startBackgroundMusic();
+                } else {
+                    this.stopBackgroundMusic();
+                }
+            });
+
+            // Start music when game starts if enabled
+            eventBus.on(GameEvents.GAME_START, () => {
+                if (this.musicEnabled) {
+                    this.startBackgroundMusic();
+                }
+            });
         }
 
         init() {
@@ -3057,8 +3094,165 @@
             try {
                 this.context = new (window.AudioContext || window.webkitAudioContext)();
                 this.initialized = true;
+
+                // Create master gain for music
+                this.musicGain = this.context.createGain();
+                this.musicGain.gain.value = 0.15; // Low volume for ambient
+                this.musicGain.connect(this.context.destination);
             } catch (e) {
                 console.warn('Audio not supported');
+            }
+        }
+
+        startBackgroundMusic() {
+            if (!this.context || !this.musicEnabled) return;
+
+            // Stop any existing music
+            this.stopBackgroundMusic();
+
+            // Create relaxing ambient space music
+            // Using multiple oscillators with slow modulation for a dreamy effect
+
+            // Base drone - deep space hum
+            const drone = this.createAmbientDrone(55, 0.08); // A1
+            this.musicNodes.push(drone);
+
+            // Pad layer 1 - soft chord
+            const pad1 = this.createAmbientPad(220, 0.04); // A3
+            this.musicNodes.push(pad1);
+
+            // Pad layer 2 - harmony
+            const pad2 = this.createAmbientPad(277.18, 0.03); // C#4
+            this.musicNodes.push(pad2);
+
+            // Pad layer 3 - high shimmer
+            const pad3 = this.createAmbientPad(329.63, 0.025); // E4
+            this.musicNodes.push(pad3);
+
+            // Subtle high sparkle
+            const sparkle = this.createSparkle(659.25, 0.015); // E5
+            this.musicNodes.push(sparkle);
+        }
+
+        createAmbientDrone(freq, volume) {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            const filter = this.context.createBiquadFilter();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Slow frequency modulation for movement
+            const lfo = this.context.createOscillator();
+            const lfoGain = this.context.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.05; // Very slow
+            lfoGain.gain.value = 2;
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            lfo.start();
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+            filter.Q.value = 1;
+
+            gain.gain.value = volume;
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.musicGain);
+
+            osc.start();
+
+            return { osc, lfo, gain, filter };
+        }
+
+        createAmbientPad(freq, volume) {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            const filter = this.context.createBiquadFilter();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Slow tremolo effect
+            const lfo = this.context.createOscillator();
+            const lfoGain = this.context.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1 + Math.random() * 0.1; // Slight randomness
+            lfoGain.gain.value = volume * 0.3;
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            lfo.start();
+
+            // Frequency drift
+            const freqLfo = this.context.createOscillator();
+            const freqLfoGain = this.context.createGain();
+            freqLfo.type = 'sine';
+            freqLfo.frequency.value = 0.02 + Math.random() * 0.03;
+            freqLfoGain.gain.value = freq * 0.01; // 1% drift
+            freqLfo.connect(freqLfoGain);
+            freqLfoGain.connect(osc.frequency);
+            freqLfo.start();
+
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+            filter.Q.value = 0.5;
+
+            gain.gain.value = volume;
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.musicGain);
+
+            osc.start();
+
+            return { osc, lfo, freqLfo, gain, filter };
+        }
+
+        createSparkle(freq, volume) {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Random volume modulation for twinkling effect
+            const lfo = this.context.createOscillator();
+            const lfoGain = this.context.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.3 + Math.random() * 0.2;
+            lfoGain.gain.value = volume * 0.8;
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            lfo.start();
+
+            gain.gain.value = volume;
+
+            osc.connect(gain);
+            gain.connect(this.musicGain);
+
+            osc.start();
+
+            return { osc, lfo, gain };
+        }
+
+        stopBackgroundMusic() {
+            this.musicNodes.forEach(node => {
+                try {
+                    if (node.osc) node.osc.stop();
+                    if (node.lfo) node.lfo.stop();
+                    if (node.freqLfo) node.freqLfo.stop();
+                } catch (e) {
+                    // Already stopped
+                }
+            });
+            this.musicNodes = [];
+        }
+
+        setMusicVolume(volume) {
+            if (this.musicGain) {
+                this.musicGain.gain.value = volume;
             }
         }
 
@@ -3259,6 +3453,22 @@
                 this.updateSoundButton(e.target.checked);
             });
 
+            // Auto-play toggle handler
+            document.getElementById('autoplay-toggle')?.addEventListener('change', (e) => {
+                localStorage.setItem('spaceludo_autoplay', e.target.checked ? 'true' : 'false');
+                // If disabled, clear any existing timer
+                if (!e.target.checked) {
+                    TurnManager.clearAutoPlayTimer();
+                }
+            });
+
+            // Load auto-play setting from localStorage
+            const autoplayToggle = document.getElementById('autoplay-toggle');
+            if (autoplayToggle) {
+                const saved = localStorage.getItem('spaceludo_autoplay');
+                autoplayToggle.checked = saved !== 'false'; // Default to true
+            }
+
             document.getElementById('btn-menu')?.addEventListener('click', () => {
                 gameState.phase = GAME_PHASE.MENU;
                 this.uiRenderer.showScreen('menu');
@@ -3292,9 +3502,15 @@
             const modal = document.getElementById('settings-modal');
             if (modal) {
                 modal.style.display = 'flex';
-                // Sync toggle with current state
+                // Sync toggles with current state
                 const soundToggle = document.getElementById('sound-toggle');
                 if (soundToggle) soundToggle.checked = gameState.soundEnabled;
+
+                const autoplayToggle = document.getElementById('autoplay-toggle');
+                if (autoplayToggle) {
+                    const saved = localStorage.getItem('spaceludo_autoplay');
+                    autoplayToggle.checked = saved !== 'false';
+                }
             }
         }
 
