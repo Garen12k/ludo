@@ -3,22 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Space Ludo - Galactic Board Game</title>
 
     <!-- CSS Files -->
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/space-theme.css">
-    <link rel="stylesheet" href="css/board.css">
-    <link rel="stylesheet" href="css/tokens.css">
-    <link rel="stylesheet" href="css/dice.css">
-    <link rel="stylesheet" href="css/ui.css">
-    <link rel="stylesheet" href="css/effects.css">
-    <link rel="stylesheet" href="css/online.css">
+    <link rel="stylesheet" href="css/main.css?v=17">
+    <link rel="stylesheet" href="css/space-theme.css?v=17">
+    <link rel="stylesheet" href="css/board.css?v=17">
+    <link rel="stylesheet" href="css/tokens.css?v=17">
+    <link rel="stylesheet" href="css/dice.css?v=17">
+    <link rel="stylesheet" href="css/ui.css?v=17">
+    <link rel="stylesheet" href="css/effects.css?v=17">
+    <link rel="stylesheet" href="css/online.css?v=17">
 
     <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="console.warn('Supabase CDN blocked - online features disabled')"></script>
 </head>
 <body>
+    <!-- Force remove debug panel and name inputs -->
+    <script>
+        (function() {
+            function removeDebug() {
+                // Remove debug panel by ID
+                ['debug-panel','debug-open','debug-close','debug-toggle','debug-clear','debug-btn','debug-toolbar','debug-status','debug-content','debug-header','debug-phase','debug-turn','debug-dice','debug-paused','debug-pause','debug-state','debug-tokens','debug-players','debug-step'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.remove();
+                });
+                // Remove debug panel by class
+                document.querySelectorAll('.debug-panel,.debug-open,.debug-header,.debug-content,.debug-controls,.debug-btn,.debug-toolbar,.debug-tool-btn,.debug-status,.debug-open-btn,.debug-log,.debug-title').forEach(function(el) { el.remove(); });
+                // Remove name inputs
+                document.querySelectorAll('#online-player-name,#join-player-name,input[placeholder="Your Name"]').forEach(function(el) { el.remove(); });
+            }
+            // Run immediately
+            removeDebug();
+            // Run when DOM is ready
+            document.addEventListener('DOMContentLoaded', removeDebug);
+            // Keep checking every 100ms for 5 seconds
+            var count = 0;
+            var interval = setInterval(function() {
+                removeDebug();
+                count++;
+                if (count > 50) clearInterval(interval);
+            }, 100);
+        })();
+    </script>
     <!-- Starfield Background -->
     <div class="starfield">
         <div class="stars-layer stars-layer-1"></div>
@@ -79,7 +109,7 @@
     <div id="main-menu" class="screen">
         <!-- Shanks Background Image -->
         <div class="menu-background-image">
-            <img src="images/shanks12.gif" alt="Shanks" class="shanks-image">
+            <img src="https://media0.giphy.com/media/0ZktdtQjGJdXy1ZrCz/giphy.gif" alt="" class="shanks-image" onerror="this.src='images/shanks12.gif'; this.onerror=function(){this.style.display='none'};">
         </div>
 
         <!-- Animated background elements -->
@@ -161,7 +191,6 @@
                     <div class="option-icon">&#127793;</div>
                     <h3>Create Room</h3>
                     <p>Start a new game and invite friends</p>
-                    <input type="text" id="online-player-name" class="online-input" placeholder="Your Name" maxlength="15">
                     <button class="glass-button" id="btn-create-room">
                         <span class="btn-icon">&#128640;</span>
                         Create Room
@@ -369,21 +398,6 @@
                 </div>
                 <button class="roll-button glass-button" id="roll-btn">Roll Dice</button>
                 <div class="dice-result" id="dice-result"></div>
-
-                <!-- Auto-Play Timer (inline with dice) -->
-                <div class="auto-play-inline" id="auto-play-timer">
-                    <div class="auto-play-content">
-                        <div class="auto-play-circle">
-                            <svg viewBox="0 0 100 100">
-                                <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
-                                <circle class="timer-progress" cx="50" cy="50" r="45" id="timer-progress"></circle>
-                            </svg>
-                            <span class="auto-play-count" id="timer-text">10</span>
-                        </div>
-                        <span class="auto-play-label">AUTO-PLAY IN...</span>
-                        <button class="auto-play-cancel" id="cancel-auto-play">✕ CANCEL</button>
-                    </div>
-                </div>
             </div>
 
             <!-- Game Controls -->
@@ -441,35 +455,6 @@
             <span class="announcement-text"></span>
         </div>
     </div>
-
-    <!-- Debug Logger Panel -->
-    <div id="debug-panel" class="debug-panel">
-        <div class="debug-header">
-            <span class="debug-title">Debug Log</span>
-            <div class="debug-controls">
-                <button class="debug-btn" id="debug-clear" title="Clear">Clear</button>
-                <button class="debug-btn" id="debug-toggle" title="Minimize">_</button>
-                <button class="debug-btn" id="debug-close" title="Close">X</button>
-            </div>
-        </div>
-        <div class="debug-toolbar">
-            <button class="debug-tool-btn" id="debug-pause" title="Pause/Resume Game">⏸ Pause</button>
-            <button class="debug-tool-btn" id="debug-state" title="Log Game State">State</button>
-            <button class="debug-tool-btn" id="debug-tokens" title="Log All Tokens">Tokens</button>
-            <button class="debug-tool-btn" id="debug-players" title="Log Players">Players</button>
-            <button class="debug-tool-btn" id="debug-step" title="Step (1 AI turn)">Step</button>
-        </div>
-        <div class="debug-status" id="debug-status">
-            <span class="status-item" id="debug-phase">Phase: --</span>
-            <span class="status-item" id="debug-turn">Turn: --</span>
-            <span class="status-item" id="debug-dice">Dice: --</span>
-            <span class="status-item" id="debug-paused">RUNNING</span>
-        </div>
-        <div class="debug-content" id="debug-content">
-            <!-- Logs will appear here -->
-        </div>
-    </div>
-    <button class="debug-open-btn" id="debug-open" title="Open Debug Panel">DBG</button>
 
     <!-- Victory Screen Overlay -->
     <div id="victory-overlay" class="overlay">
@@ -614,6 +599,6 @@
     <canvas id="particle-canvas"></canvas>
 
     <!-- JavaScript Bundle (no server required) -->
-    <script src="js/game-bundle.js"></script>
+    <script src="js/game-bundle.js?v=17"></script>
 </body>
 </html>

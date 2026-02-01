@@ -3,6 +3,74 @@
  * All game code in one file for local file:// access
  */
 
+// IMMEDIATELY remove debug panel on load (before anything else)
+// This runs multiple times to ensure complete removal
+(function removeDebugPanel() {
+    function cleanup() {
+        // Remove by ID
+        var elementsToRemove = [
+            'debug-panel',
+            'debug-open',
+            'debug-close',
+            'debug-toggle',
+            'debug-clear',
+            'debug-btn',
+            'debug-toolbar',
+            'debug-status'
+        ];
+
+        elementsToRemove.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+
+        // Remove by class name
+        var classesToRemove = [
+            'debug-panel',
+            'debug-open',
+            'debug-header',
+            'debug-content',
+            'debug-controls',
+            'debug-btn',
+            'debug-log',
+            'debug-toolbar',
+            'debug-open-btn'
+        ];
+
+        classesToRemove.forEach(function(className) {
+            var elements = document.getElementsByClassName(className);
+            // Convert to array to avoid live collection issues
+            var arr = Array.prototype.slice.call(elements);
+            arr.forEach(function(el) {
+                if (el && el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            });
+        });
+    }
+
+    // Run immediately
+    cleanup();
+
+    // Run after DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', cleanup);
+    } else {
+        cleanup();
+    }
+
+    // Run after everything loads
+    window.addEventListener('load', cleanup);
+
+    // Run periodically for the first few seconds to catch any dynamically added panels
+    var cleanupInterval = setInterval(cleanup, 100);
+    setTimeout(function() {
+        clearInterval(cleanupInterval);
+    }, 3000);
+})();
+
 (function() {
     'use strict';
 
@@ -2330,247 +2398,6 @@
     `;
     document.head.appendChild(emojiStyles);
 
-    // ============================================
-    // AUTO-PLAY TIMER
-    // ============================================
-
-    class AutoPlayTimer {
-        constructor() {
-            this.timerElement = document.getElementById('auto-play-timer');
-            this.timerText = document.getElementById('timer-text');
-            this.timerProgress = document.getElementById('timer-progress');
-            this.cancelButton = document.getElementById('cancel-auto-play');
-
-            this.countdown = 5;
-            this.maxTime = 5;
-            this.intervalId = null;
-            this.isActive = false;
-            this.isCancelled = false;
-
-            this.setupEventListeners();
-        }
-
-        setupEventListeners() {
-            // Cancel button click
-            if (this.cancelButton) {
-                this.cancelButton.addEventListener('click', () => {
-                    this.cancel();
-                });
-            }
-
-            // Start timer when it's human player's turn and they need to act
-            eventBus.on(GameEvents.TURN_START, (data) => {
-                console.log('Turn start:', data.player.color, 'isAI:', data.player.isAI, 'phase:', gameState.phase);
-                // Reset cancelled state for new turn
-                this.isCancelled = false;
-                this.stop(); // Stop any existing timer
-                if (!data.player.isAI && gameState.phase === GAME_PHASE.PLAYING) {
-                    // Small delay to ensure UI is ready
-                    setTimeout(() => this.start(), 300);
-                }
-            });
-
-            // Stop timer when dice is rolled, but prepare for token selection
-            eventBus.on(GameEvents.DICE_ROLLED, () => {
-                this.stop();
-                // Don't reset isCancelled here - only on new turn
-            });
-
-            // Start timer when player needs to select a token (multiple valid moves)
-            eventBus.on(GameEvents.VALID_MOVES_UPDATE, (data) => {
-                const player = gameState.getCurrentPlayer();
-                if (data.moves && data.moves.length > 0 && player && !player.isAI && !this.isCancelled) {
-                    // Small delay to let UI update
-                    setTimeout(() => {
-                        if (gameState.turnPhase === TURN_PHASE.SELECTING && !this.isActive) {
-                            this.start();
-                        }
-                    }, 300);
-                }
-            });
-
-            // Stop timer when move is made, then check for extra turn
-            eventBus.on(GameEvents.TOKEN_MOVE_COMPLETE, () => {
-                this.stop();
-                // Check if player gets extra turn (rolled 6)
-                const player = gameState.getCurrentPlayer();
-                console.log('TOKEN_MOVE_COMPLETE - player:', player?.color, 'isAI:', player?.isAI, 'turnPhase:', gameState.turnPhase, 'canRollAgain:', gameState.canRollAgain());
-                if (player && !player.isAI && gameState.phase === GAME_PHASE.PLAYING) {
-                    // Reset cancelled for extra turn opportunity
-                    this.isCancelled = false;
-                    // Delay to let turnPhase update properly
-                    setTimeout(() => {
-                        console.log('Checking auto-play restart - turnPhase:', gameState.turnPhase, 'canRollAgain:', gameState.canRollAgain());
-                        if (gameState.turnPhase === TURN_PHASE.WAITING) {
-                            this.start();
-                        }
-                    }, 600);
-                }
-            });
-
-            // Stop timer when move starts
-            eventBus.on(GameEvents.TOKEN_MOVE_START, () => {
-                this.stop();
-            });
-
-            // Stop timer on game end
-            eventBus.on(GameEvents.PLAYER_WIN, () => {
-                this.stop();
-                this.isCancelled = true; // Prevent restart
-            });
-
-            // Stop when going back to menu
-            eventBus.on(GameEvents.GAME_END, () => {
-                this.stop();
-                this.isCancelled = true; // Prevent restart
-            });
-        }
-
-        start() {
-            if (this.isActive || this.isCancelled) return;
-
-            // Re-get elements in case DOM wasn't ready
-            if (!this.timerElement) {
-                this.timerElement = document.getElementById('auto-play-timer');
-                this.timerText = document.getElementById('timer-text');
-                this.timerProgress = document.getElementById('timer-progress');
-                this.cancelButton = document.getElementById('cancel-auto-play');
-            }
-
-            if (!this.timerElement) {
-                console.warn('Auto-play timer elements not found');
-                return;
-            }
-
-            console.log('Starting auto-play timer');
-            this.isActive = true;
-            this.countdown = this.maxTime;
-
-            this.updateDisplay();
-            this.show();
-
-            this.intervalId = setInterval(() => {
-                this.countdown--;
-                this.updateDisplay();
-
-                if (this.countdown <= 0) {
-                    this.triggerAutoPlay();
-                }
-            }, 1000);
-        }
-
-        stop() {
-            this.isActive = false;
-            if (this.intervalId) {
-                clearInterval(this.intervalId);
-                this.intervalId = null;
-            }
-            this.hide();
-        }
-
-        reset() {
-            if (!this.isActive || this.isCancelled) return;
-            this.countdown = this.maxTime;
-            this.updateDisplay();
-        }
-
-        cancel() {
-            console.log('Auto-play cancelled - turnPhase:', gameState.turnPhase);
-            this.stop();
-            this.isCancelled = true;  // Set after stop so it stays cancelled for this turn
-            console.log('Auto-play cancelled - timer hidden, isCancelled:', this.isCancelled);
-
-            // Show cancelled message
-            const emoji = document.createElement('div');
-            emoji.textContent = '✓ Cancelled';
-            emoji.style.cssText = `
-                position: fixed;
-                top: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-size: 24px;
-                color: #33ff66;
-                background: rgba(0,0,0,0.7);
-                padding: 10px 20px;
-                border-radius: 10px;
-                text-shadow: 0 0 20px rgba(51, 255, 102, 0.8);
-                animation: fadeOut 1.5s ease-out forwards;
-                z-index: 201;
-            `;
-            document.body.appendChild(emoji);
-            setTimeout(() => emoji.remove(), 1500);
-        }
-
-        // Reset cancelled state on new turn
-        resetCancelState() {
-            this.isCancelled = false;
-        }
-
-        updateDisplay() {
-            if (this.timerText) {
-                this.timerText.textContent = this.countdown;
-            }
-
-            if (this.timerProgress) {
-                // Calculate progress (283 is circumference of circle with r=45)
-                const progress = ((this.maxTime - this.countdown) / this.maxTime) * 283;
-                this.timerProgress.style.strokeDashoffset = progress;
-
-                // Change color when low
-                if (this.countdown <= 3) {
-                    this.timerProgress.style.stroke = '#ff3366';
-                    this.timerText.style.color = '#ff3366';
-                } else {
-                    this.timerProgress.style.stroke = '#ffcc00';
-                    this.timerText.style.color = '#ffcc00';
-                }
-            }
-        }
-
-        show() {
-            if (this.timerElement) {
-                this.timerElement.classList.add('active');
-                this.timerElement.style.pointerEvents = 'auto';
-            }
-        }
-
-        hide() {
-            if (this.timerElement) {
-                this.timerElement.classList.remove('active');
-                this.timerElement.style.pointerEvents = 'none';
-            }
-        }
-
-        async triggerAutoPlay() {
-            this.stop();
-
-            const player = gameState.getCurrentPlayer();
-            if (!player || player.isAI) return;
-
-            // Show auto-play message
-            eventBus.emit(GameEvents.SHOW_MESSAGE, {
-                message: '🤖 Auto-playing...',
-                type: 'info'
-            });
-
-            // If waiting for dice roll, roll it
-            if (gameState.turnPhase === TURN_PHASE.WAITING) {
-                await TurnManager.rollDice();
-                // After rolling, check if we need to auto-select a token
-                // The VALID_MOVES_UPDATE event will handle restarting the timer
-            }
-            // If waiting for token selection, let AI choose
-            else if (gameState.turnPhase === TURN_PHASE.SELECTING) {
-                const validMoves = gameState.validMoves;
-                if (validMoves && validMoves.length > 0) {
-                    // Use AI to select best move
-                    const move = await AIController.selectMove(validMoves, gameState);
-                    await TurnManager.executeMove(move);
-                    // TOKEN_MOVE_COMPLETE event will handle extra turns
-                }
-            }
-        }
-    }
 
     // ============================================
     // LOGIN MANAGER
@@ -3458,7 +3285,56 @@
             AIController.setDifficulty(config.aiDifficulty);
 
             gameState.initGame(config);
+
+            // Assign avatars to all players (AI gets robot emojis, humans get their selected avatar)
+            this.assignPlayerAvatars();
+
             TurnManager.startTurn();
+        }
+
+        assignPlayerAvatars() {
+            const aiEmojis = ['🤖', '👾', '🛸', '👽'];
+            const userManager = window.userManager;
+
+            gameState.players.forEach((player, index) => {
+                const avatarIcon = document.querySelector(`.player-info[data-player="${index}"] .avatar-icon`);
+                const profilePic = document.querySelector(`.player-info[data-player="${index}"] .profile-pic`);
+                const playerName = document.querySelector(`.player-info[data-player="${index}"] .player-name`);
+
+                if (!avatarIcon) return;
+
+                // Update player name
+                if (playerName) {
+                    playerName.textContent = player.name + (player.isAI ? ' (AI)' : '');
+                }
+
+                // Check if player has a saved profile picture
+                const profiles = JSON.parse(localStorage.getItem('spaceLudoProfiles') || '{}');
+                if (profiles[index] && profilePic) {
+                    // Player has custom profile pic - use it
+                    profilePic.src = profiles[index];
+                    profilePic.classList.add('loaded');
+                    profilePic.style.display = 'block';
+                } else {
+                    // No custom pic - use emoji
+                    if (profilePic) {
+                        profilePic.src = '';
+                        profilePic.classList.remove('loaded');
+                        profilePic.style.display = 'none';
+                    }
+
+                    if (player.isAI) {
+                        // AI player gets robot emoji
+                        avatarIcon.textContent = aiEmojis[index % aiEmojis.length];
+                    } else if (index === 0 && userManager && userManager.getAvatar()) {
+                        // Human player (first slot) gets their login avatar
+                        avatarIcon.textContent = userManager.getAvatar();
+                    } else {
+                        // Default emoji for other human players
+                        avatarIcon.textContent = '👤';
+                    }
+                }
+            });
         }
     }
 
@@ -3682,7 +3558,15 @@
             try {
                 this.supabase = supabase.createClient(
                     SUPABASE_CONFIG.url,
-                    SUPABASE_CONFIG.anonKey
+                    SUPABASE_CONFIG.anonKey,
+                    {
+                        db: {
+                            schema: 'public'
+                        },
+                        auth: {
+                            persistSession: false
+                        }
+                    }
                 );
                 console.log('Supabase initialized');
                 return true;
@@ -3745,18 +3629,32 @@
                 this.roomId = room.id;
 
                 // Add host as first player
-                const { error: playerError } = await this.supabase
-                    .from('players')
-                    .insert({
-                        room_id: this.roomId,
-                        name: this.playerName,
-                        color: PLAYER_ORDER[0],
-                        slot: 0,
-                        is_host: true,
-                        is_connected: true
-                    });
+                console.log('DEBUG: createRoom - Inserting host player with name:', this.playerName);
+                const hostPlayerData = {
+                    room_id: this.roomId,
+                    name: this.playerName,
+                    color: PLAYER_ORDER[0],
+                    slot: 0,
+                    is_host: true,
+                    is_connected: true
+                };
+                console.log('DEBUG: createRoom - Data to insert:', hostPlayerData);
 
-                if (playerError) throw playerError;
+                const { data: playerData, error: playerError } = await this.supabase
+                    .from('players')
+                    .insert(hostPlayerData)
+                    .select('id, room_id, name, color, slot, is_host, is_connected');
+
+                if (playerError) {
+                    console.error('DEBUG: createRoom - Player insert error:', playerError);
+                    throw playerError;
+                }
+                console.log('DEBUG: createRoom - Successfully inserted player data:', JSON.stringify(playerData, null, 2));
+                if (!playerData || playerData.length === 0) {
+                    console.error('DEBUG: createRoom - WARNING: No data returned from insert!');
+                } else {
+                    console.log('DEBUG: createRoom - Host name confirmed:', playerData[0].name);
+                }
 
                 // Subscribe to room updates
                 await this.subscribeToRoom();
@@ -3829,18 +3727,31 @@
                 }
 
                 // Add player
-                const { error: joinError } = await this.supabase
-                    .from('players')
-                    .insert({
-                        room_id: this.roomId,
-                        name: this.playerName,
-                        color: PLAYER_ORDER[this.playerSlot],
-                        slot: this.playerSlot,
-                        is_host: false,
-                        is_connected: true
-                    });
+                const newPlayer = {
+                    room_id: this.roomId,
+                    name: this.playerName,
+                    color: PLAYER_ORDER[this.playerSlot],
+                    slot: this.playerSlot,
+                    is_host: false,
+                    is_connected: true
+                };
 
-                if (joinError) throw joinError;
+                console.log('DEBUG: joinRoom - Inserting player with data:', newPlayer);
+                const { data: insertedPlayer, error: joinError } = await this.supabase
+                    .from('players')
+                    .insert(newPlayer)
+                    .select('id, room_id, name, color, slot, is_host, is_connected');
+
+                if (joinError) {
+                    console.error('DEBUG: joinRoom - Player insert error:', joinError);
+                    throw joinError;
+                }
+                console.log('DEBUG: joinRoom - Successfully inserted player data:', JSON.stringify(insertedPlayer, null, 2));
+                if (!insertedPlayer || insertedPlayer.length === 0) {
+                    console.error('DEBUG: joinRoom - WARNING: No data returned from insert!');
+                } else {
+                    console.log('DEBUG: joinRoom - Player name confirmed:', insertedPlayer[0].name);
+                }
 
                 // Subscribe to room updates
                 await this.subscribeToRoom();
@@ -3849,7 +3760,10 @@
                 this.updateConnectionStatus('connected');
                 this.startHeartbeat();
 
-                console.log('Joined room:', roomCode);
+                // Add ourselves to the players list
+                players.push(newPlayer);
+
+                console.log('Joined room:', roomCode, 'as', this.playerName);
                 return {
                     roomCode: this.roomCode,
                     slot: this.playerSlot,
@@ -4361,14 +4275,25 @@
             try {
                 const { data, error } = await this.supabase
                     .from('players')
-                    .select('*')
+                    .select('id, room_id, name, color, slot, is_host, is_connected, last_seen, created_at')
                     .eq('room_id', this.roomId)
                     .order('slot');
 
-                if (error) throw error;
+                if (error) {
+                    console.error('DEBUG: getPlayersInRoom - Supabase error:', error);
+                    throw error;
+                }
+                console.log('DEBUG: getPlayersInRoom - Raw data from Supabase:', data);
+                if (data && data.length > 0) {
+                    console.log('DEBUG: First player sample:', JSON.stringify(data[0], null, 2));
+                    console.log('DEBUG: First player name field:', data[0].name);
+                    console.log('DEBUG: First player name type:', typeof data[0].name);
+                    console.log('DEBUG: All columns:', Object.keys(data[0]));
+                }
                 return data || [];
             } catch (error) {
                 console.error('Failed to get players:', error);
+                console.error('Error details:', error.message, error.details, error.hint);
                 return [];
             }
         }
@@ -4489,6 +4414,10 @@
             // Play Online button
             document.getElementById('btn-online')?.addEventListener('click', () => {
                 this.uiRenderer.showScreen('online-menu');
+                // Username now comes automatically from login - no input fields needed
+                // Force remove any cached name inputs that shouldn't exist
+                const unwantedInputs = document.querySelectorAll('#online-player-name, #join-player-name, .create-option input[placeholder="Your Name"], .join-option input[placeholder="Your Name"]');
+                unwantedInputs.forEach(input => input.remove());
             });
 
             // Back button from online menu
@@ -4498,11 +4427,11 @@
 
             // Create Room button
             document.getElementById('btn-create-room')?.addEventListener('click', async () => {
-                const nameInput = document.getElementById('online-player-name');
-                const playerName = nameInput?.value.trim() || 'Player';
+                // Automatically use login username - no need to enter name again
+                const playerName = window.loginManager?.getUsername() || localStorage.getItem('spaceludo_username') || 'Player';
 
-                if (!playerName) {
-                    networkManager.showToast('Please enter your name');
+                if (!playerName || playerName === 'Player') {
+                    networkManager.showToast('Please login first to create a game');
                     return;
                 }
 
@@ -4523,19 +4452,22 @@
             // Join Room button
             document.getElementById('btn-join-room')?.addEventListener('click', async () => {
                 const codeInput = document.getElementById('room-code-input');
-                const nameInput = document.getElementById('online-player-name');
                 const roomCode = codeInput?.value.trim();
-                const playerName = nameInput?.value.trim() || 'Player';
+
+                // Automatically use login username - no need to enter name again
+                const playerName = window.loginManager?.getUsername() || localStorage.getItem('spaceludo_username') || '';
 
                 if (!roomCode || roomCode.length < 6) {
                     networkManager.showToast('Please enter a valid room code');
                     return;
                 }
 
-                if (!playerName) {
-                    networkManager.showToast('Please enter your name');
+                if (!playerName || playerName.length === 0) {
+                    networkManager.showToast('Please login first to join a game');
                     return;
                 }
+
+                console.log('Joining with login name:', playerName);
 
                 const btn = document.getElementById('btn-join-room');
                 btn.disabled = true;
@@ -4605,7 +4537,10 @@
                 startBtn.style.display = networkManager.isHost ? 'flex' : 'none';
             }
 
+            // Refresh lobby immediately and again after a short delay
             this.refreshLobby();
+            setTimeout(() => this.refreshLobby(), 500);
+            setTimeout(() => this.refreshLobby(), 1500);
             this.startRefreshInterval();
 
             // Broadcast our profile picture to other players in lobby
@@ -4622,10 +4557,12 @@
 
         async refreshLobby() {
             const players = await networkManager.getPlayersInRoom();
+            console.log('DEBUG: refreshLobby - Players received:', players);
             this.updateLobbyUI(players);
         }
 
         updateLobbyUI(players) {
+            console.log('DEBUG: updateLobbyUI - Updating UI with players:', players);
             const slots = document.querySelectorAll('.player-slot');
             const playerCount = document.getElementById('player-count');
             const startBtn = document.getElementById('btn-start-online');
@@ -4649,6 +4586,9 @@
 
             // Fill in players
             players.forEach(player => {
+                console.log('DEBUG: Processing player for slot', player.slot, ':', player);
+                console.log('DEBUG: Player name:', player.name);
+                console.log('DEBUG: Player object keys:', Object.keys(player));
                 const slot = document.querySelector(`.player-slot[data-slot="${player.slot}"]`);
                 if (slot) {
                     const nameEl = slot.querySelector('.slot-name');
@@ -4657,15 +4597,27 @@
                     const avatarNumber = slot.querySelector('.slot-number');
 
                     slot.classList.add('occupied');
-                    nameEl.textContent = player.name;
+
+                    // Get player name - handle both snake_case and camelCase, and check all possible fields
+                    let playerName = player.name || player.playerName || player.player_name ||
+                                   (player.slot === 0 ? 'Host' : `Player ${player.slot + 1}`);
+
+                    // Extra validation - if name is somehow an empty string, use default
+                    if (!playerName || playerName.trim() === '') {
+                        playerName = player.slot === 0 ? 'Host' : `Player ${player.slot + 1}`;
+                    }
+
+                    console.log('DEBUG: Final playerName being displayed:', playerName);
+                    nameEl.textContent = playerName;
                     statusEl.textContent = 'Ready';
 
                     // Show player's initial letter in the avatar
-                    if (avatarNumber && player.name) {
-                        avatarNumber.textContent = player.name.charAt(0).toUpperCase();
+                    if (avatarNumber && playerName) {
+                        avatarNumber.textContent = playerName.charAt(0).toUpperCase();
                     }
 
-                    if (player.is_host) {
+                    // Handle both snake_case and camelCase for is_host
+                    if (player.is_host || player.isHost) {
                         hostBadge.classList.remove('hidden');
                     }
 
@@ -4783,452 +4735,112 @@
     }
 
     // ============================================
-    // DEBUG LOGGER
+    // DEBUG LOGGER (COMPLETELY DISABLED - NO-OP STUB)
     // ============================================
 
     class DebugLogger {
         constructor() {
-            this.panel = document.getElementById('debug-panel');
-            this.content = document.getElementById('debug-content');
-            this.openBtn = document.getElementById('debug-open');
-            this.toggleBtn = document.getElementById('debug-toggle');
-            this.clearBtn = document.getElementById('debug-clear');
-            this.closeBtn = document.getElementById('debug-close');
-
-            // New tool buttons
-            this.pauseBtn = document.getElementById('debug-pause');
-            this.stateBtn = document.getElementById('debug-state');
-            this.tokensBtn = document.getElementById('debug-tokens');
-            this.playersBtn = document.getElementById('debug-players');
-            this.stepBtn = document.getElementById('debug-step');
-
-            // Status elements
-            this.phaseEl = document.getElementById('debug-phase');
-            this.turnEl = document.getElementById('debug-turn');
-            this.diceEl = document.getElementById('debug-dice');
-            this.pausedEl = document.getElementById('debug-paused');
-
-            this.maxLogs = 200;
+            // Aggressively remove any debug panel elements
+            this.removeDebugElements();
+            // Set all properties to null
+            this.panel = null;
+            this.content = null;
+            this.openBtn = null;
             this.logs = [];
-            this.stepMode = false;
+            this.maxLogs = 0;
+        }
 
-            this.setupControls();
-            this.setupToolButtons();
-            this.setupDraggable();
-            this.interceptConsole();
-            this.setupEventListeners();
-            this.startStatusUpdater();
-
-            this.log('Debug Logger initialized', 'info');
+        removeDebugElements() {
+            // Remove debug panel and all related elements
+            const elementsToRemove = [
+                'debug-panel',
+                'debug-open',
+                'debug-close',
+                'debug-toggle',
+                'debug-clear'
+            ];
+            elementsToRemove.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
+            // Also remove by class name
+            document.querySelectorAll('.debug-panel, .debug-open').forEach(el => el.remove());
         }
 
         setupControls() {
-            if (this.toggleBtn) {
-                this.toggleBtn.addEventListener('click', () => this.toggleMinimize());
-            }
-            if (this.clearBtn) {
-                this.clearBtn.addEventListener('click', () => this.clear());
-            }
-            if (this.closeBtn) {
-                this.closeBtn.addEventListener('click', () => this.hide());
-            }
-            if (this.openBtn) {
-                this.openBtn.addEventListener('click', () => this.show());
-            }
+            // No-op
         }
 
         setupDraggable() {
-            const header = this.panel?.querySelector('.debug-header');
-            if (!header || !this.panel) return;
-
-            let isDragging = false;
-            let startX, startY, startLeft, startTop;
-
-            header.addEventListener('mousedown', (e) => {
-                // Don't drag if clicking on buttons
-                if (e.target.closest('.debug-btn') || e.target.closest('.debug-controls')) return;
-
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-
-                const rect = this.panel.getBoundingClientRect();
-                startLeft = rect.left;
-                startTop = rect.top;
-
-                // Switch from bottom/right to top/left positioning
-                this.panel.style.bottom = 'auto';
-                this.panel.style.right = 'auto';
-                this.panel.style.left = startLeft + 'px';
-                this.panel.style.top = startTop + 'px';
-
-                e.preventDefault();
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-
-                let newLeft = startLeft + dx;
-                let newTop = startTop + dy;
-
-                // Keep within viewport
-                const maxX = window.innerWidth - this.panel.offsetWidth;
-                const maxY = window.innerHeight - this.panel.offsetHeight;
-
-                newLeft = Math.max(0, Math.min(newLeft, maxX));
-                newTop = Math.max(0, Math.min(newTop, maxY));
-
-                this.panel.style.left = newLeft + 'px';
-                this.panel.style.top = newTop + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
-
-            // Touch support for mobile
-            header.addEventListener('touchstart', (e) => {
-                if (e.target.closest('.debug-btn') || e.target.closest('.debug-controls')) return;
-
-                isDragging = true;
-                const touch = e.touches[0];
-                startX = touch.clientX;
-                startY = touch.clientY;
-
-                const rect = this.panel.getBoundingClientRect();
-                startLeft = rect.left;
-                startTop = rect.top;
-
-                this.panel.style.bottom = 'auto';
-                this.panel.style.right = 'auto';
-                this.panel.style.left = startLeft + 'px';
-                this.panel.style.top = startTop + 'px';
-            }, { passive: true });
-
-            document.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-
-                const touch = e.touches[0];
-                const dx = touch.clientX - startX;
-                const dy = touch.clientY - startY;
-
-                let newLeft = startLeft + dx;
-                let newTop = startTop + dy;
-
-                const maxX = window.innerWidth - this.panel.offsetWidth;
-                const maxY = window.innerHeight - this.panel.offsetHeight;
-
-                newLeft = Math.max(0, Math.min(newLeft, maxX));
-                newTop = Math.max(0, Math.min(newTop, maxY));
-
-                this.panel.style.left = newLeft + 'px';
-                this.panel.style.top = newTop + 'px';
-            }, { passive: true });
-
-            document.addEventListener('touchend', () => {
-                isDragging = false;
-            });
+            // No-op
         }
 
         setupToolButtons() {
-            // Pause button
-            if (this.pauseBtn) {
-                this.pauseBtn.addEventListener('click', () => {
-                    if (gameState.isOnlineGame) {
-                        this.log('Cannot pause online games', 'warn');
-                        return;
-                    }
-                    const isPaused = gameState.togglePause();
-                    this.pauseBtn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
-                    this.pauseBtn.classList.toggle('active', isPaused);
-                    this.updateStatus();
-                });
-            }
-
-            // State button
-            if (this.stateBtn) {
-                this.stateBtn.addEventListener('click', () => {
-                    this.logGameState();
-                });
-            }
-
-            // Tokens button
-            if (this.tokensBtn) {
-                this.tokensBtn.addEventListener('click', () => {
-                    this.logTokens();
-                });
-            }
-
-            // Players button
-            if (this.playersBtn) {
-                this.playersBtn.addEventListener('click', () => {
-                    this.logPlayers();
-                });
-            }
-
-            // Step button (single turn)
-            if (this.stepBtn) {
-                this.stepBtn.addEventListener('click', () => {
-                    if (gameState.isPaused) {
-                        this.stepMode = true;
-                        gameState.isPaused = false;
-                        this.log('Step mode: executing one turn...', 'info');
-                        // Will re-pause after turn in event listener
-                    } else {
-                        this.log('Pause the game first to use Step', 'warn');
-                    }
-                });
-            }
+            // No-op
         }
 
         startStatusUpdater() {
-            setInterval(() => this.updateStatus(), 500);
+            // No-op
         }
 
         updateStatus() {
-            if (this.phaseEl) {
-                this.phaseEl.textContent = `Phase: ${gameState.phase || '--'}`;
-            }
-            if (this.turnEl) {
-                const player = gameState.getCurrentPlayer?.();
-                this.turnEl.textContent = `Turn: ${player?.color || '--'} ${player?.isAI ? '(AI)' : ''}`;
-            }
-            if (this.diceEl) {
-                this.diceEl.textContent = `Dice: ${gameState.diceValue || '--'}`;
-            }
-            if (this.pausedEl) {
-                this.pausedEl.textContent = gameState.isPaused ? 'PAUSED' : 'RUNNING';
-                this.pausedEl.classList.toggle('paused', gameState.isPaused);
-            }
+            // No-op
         }
 
         logGameState() {
-            this.log('=== GAME STATE ===', 'info');
-            this.log(`Phase: ${gameState.phase}`, 'info');
-            this.log(`Turn Phase: ${gameState.turnPhase}`, 'info');
-            this.log(`Current Player: ${gameState.currentPlayerIndex}`, 'info');
-            this.log(`Dice Value: ${gameState.diceValue}`, 'info');
-            this.log(`Consecutive 6s: ${gameState.consecutiveSixes}`, 'info');
-            this.log(`Valid Moves: ${gameState.validMoves?.length || 0}`, 'info');
-            this.log(`Is Online: ${gameState.isOnlineGame}`, 'info');
-            this.log(`Is Paused: ${gameState.isPaused}`, 'info');
-            this.log('==================', 'info');
+            // No-op
         }
 
         logTokens() {
-            this.log('=== ALL TOKENS ===', 'info');
-            gameState.players?.forEach((player, pi) => {
-                player.tokens?.forEach((token, ti) => {
-                    this.log(
-                        `${player.color}[${ti}]: ${token.state} | pos:(${token.position?.row},${token.position?.col}) | track:${token.trackIndex} | home:${token.homePathIndex}`,
-                        'move'
-                    );
-                });
-            });
-            this.log('==================', 'info');
+            // No-op
         }
 
         logPlayers() {
-            this.log('=== PLAYERS ===', 'info');
-            gameState.players?.forEach((player, i) => {
-                const activeTokens = player.getActiveTokens?.()?.length || 0;
-                const finishedTokens = player.finishedTokens || 0;
-                this.log(
-                    `[${i}] ${player.color} ${player.isAI ? '(AI)' : '(Human)'} | Active: ${activeTokens} | Finished: ${finishedTokens}`,
-                    'turn'
-                );
-            });
-            this.log('===============', 'info');
+            // No-op
         }
 
         interceptConsole() {
-            const originalLog = console.log;
-            const originalWarn = console.warn;
-            const originalError = console.error;
-            const self = this;
-
-            console.log = function(...args) {
-                originalLog.apply(console, args);
-                self.parseAndLog(args, 'info');
-            };
-
-            console.warn = function(...args) {
-                originalWarn.apply(console, args);
-                self.parseAndLog(args, 'warn');
-            };
-
-            console.error = function(...args) {
-                originalError.apply(console, args);
-                self.parseAndLog(args, 'error');
-            };
+            // No-op
         }
 
         setupEventListeners() {
-            const self = this;
-
-            // Listen to game events for better logging
-            eventBus.on(GameEvents.TURN_START, (data) => {
-                this.log(`Turn Start: ${data.player?.color || 'Unknown'} (AI: ${data.player?.isAI})`, 'turn');
-                this.updateStatus();
-            });
-
-            eventBus.on(GameEvents.TURN_END, () => {
-                // Handle step mode - re-pause after one turn
-                if (this.stepMode) {
-                    this.stepMode = false;
-                    setTimeout(() => {
-                        gameState.isPaused = true;
-                        this.log('Step complete - paused', 'info');
-                        this.updateStatus();
-                        if (this.pauseBtn) {
-                            this.pauseBtn.textContent = '▶ Resume';
-                            this.pauseBtn.classList.add('active');
-                        }
-                    }, 100);
-                }
-            });
-
-            eventBus.on(GameEvents.DICE_ROLLED, (data) => {
-                this.log(`Dice: ${data.value}`, 'dice');
-                this.updateStatus();
-            });
-
-            eventBus.on(GameEvents.TOKEN_MOVE_START, (data) => {
-                const move = data.move || data;
-                this.log(`Token Move: ${move.tokenId || 'unknown'} -> (${move.toPosition?.row ?? '?'},${move.toPosition?.col ?? '?'}) type: ${move.type || '?'}`, 'move');
-            });
-
-            eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
-                this.log(`Capture! ${data.capturedToken?.id} by ${data.capturingToken?.id}`, 'event');
-            });
-
-            eventBus.on(GameEvents.TOKEN_FINISH, (data) => {
-                this.log(`Token Finished: ${data.token?.id}`, 'event');
-            });
-
-            eventBus.on(GameEvents.PLAYER_WIN, (data) => {
-                this.log(`WINNER: ${data.player?.color}!`, 'event');
-            });
-
-            eventBus.on(GameEvents.GAME_PAUSE, () => {
-                this.log('Game PAUSED', 'warn');
-                this.updateStatus();
-            });
-
-            eventBus.on(GameEvents.GAME_RESUME, () => {
-                this.log('Game RESUMED', 'info');
-                this.updateStatus();
-            });
-
-            eventBus.on(GameEvents.VALID_MOVES_UPDATE, (data) => {
-                this.log(`Valid moves: ${data.moves?.length || 0}`, 'info');
-            });
+            // No-op
         }
 
-        parseAndLog(args, type) {
-            const message = args.map(arg => {
-                if (typeof arg === 'object') {
-                    try {
-                        return JSON.stringify(arg, null, 0).substring(0, 100);
-                    } catch {
-                        return String(arg);
-                    }
-                }
-                return String(arg);
-            }).join(' ');
-
-            // Categorize by content
-            if (message.includes('Turn start') || message.includes('Turn Start')) type = 'turn';
-            else if (message.includes('Dice') || message.includes('dice')) type = 'dice';
-            else if (message.includes('move') || message.includes('Move')) type = 'move';
-            else if (message.includes('network') || message.includes('Network') || message.includes('broadcast')) type = 'network';
-            else if (message.includes('Error') || message.includes('error') || message.includes('Invalid')) type = 'error';
-
-            this.log(message, type);
+        parseAndLog() {
+            // No-op
         }
 
-        log(message, type = 'info') {
-            const time = new Date().toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                fractionalSecondDigits: 2
-            });
-
-            this.logs.push({ time, message, type });
-
-            // Limit logs
-            if (this.logs.length > this.maxLogs) {
-                this.logs.shift();
-            }
-
-            this.renderLog({ time, message, type });
+        log() {
+            // No-op
         }
 
-        renderLog(log) {
-            if (!this.content) return;
-
-            const div = document.createElement('div');
-            div.className = `debug-log ${log.type}`;
-            div.innerHTML = `<span class="time">${log.time}</span>${this.escapeHtml(log.message)}`;
-
-            this.content.appendChild(div);
-
-            // Auto scroll to bottom
-            this.content.scrollTop = this.content.scrollHeight;
-
-            // Remove old entries from DOM
-            while (this.content.children.length > this.maxLogs) {
-                this.content.removeChild(this.content.firstChild);
-            }
+        renderLog() {
+            // No-op
         }
 
         escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            return '';
         }
 
         clear() {
-            this.logs = [];
-            if (this.content) {
-                this.content.innerHTML = '';
-            }
-            this.log('Logs cleared', 'info');
+            // No-op
         }
 
         toggleMinimize() {
-            if (this.panel) {
-                this.panel.classList.toggle('minimized');
-                if (this.toggleBtn) {
-                    this.toggleBtn.textContent = this.panel.classList.contains('minimized') ? '+' : '_';
-                }
-            }
+            // No-op
         }
 
         hide() {
-            if (this.panel) {
-                this.panel.classList.add('hidden');
-            }
-            if (this.openBtn) {
-                this.openBtn.classList.add('visible');
-            }
+            // No-op
         }
 
         show() {
-            if (this.panel) {
-                this.panel.classList.remove('hidden');
-            }
-            if (this.openBtn) {
-                this.openBtn.classList.remove('visible');
-            }
+            // No-op
         }
     }
 
+    // REMOVED OLD DEBUG LOGGER METHODS BELOW (lines 4865-5270)
     // ============================================
     // INITIALIZATION
     // ============================================
@@ -5251,7 +4863,6 @@
         const particleSystem = new ParticleSystem('particle-canvas');
         const screenEffects = new ScreenEffects();
         const emojiEffects = new EmojiEffects();
-        const autoPlayTimer = new AutoPlayTimer();
 
         // Initialize sound
         const soundManager = new SoundManager();
@@ -5281,7 +4892,8 @@
         };
         document.addEventListener('click', initAudio);
 
-        // Expose for debugging
+        // Expose for access
+        window.loginManager = loginManager;
         window.SpaceLudo = {
             gameState,
             eventBus,
@@ -5291,7 +4903,6 @@
             networkManager,
             onlineLobbyController,
             tokenRenderer,
-            debugLogger,
             xpManager,
             loginManager
         };
