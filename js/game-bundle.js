@@ -2966,30 +2966,40 @@
         }
 
         setupEventListeners() {
+            // Helper to check if a player is the logged-in user
+            const isLoggedInPlayer = (player) => {
+                if (!player || player.isAI) return false;
+                const userData = localStorage.getItem('spaceludo_user');
+                if (!userData) return false;
+                const loggedInUser = JSON.parse(userData);
+                return player.name === loggedInUser.username;
+            };
+
             // Track game events for XP
             eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
-                // Only award XP to human players
-                if (!gameState.players[data.capturer.playerIndex]?.isAI) {
+                // Only award XP to the logged-in user
+                const player = gameState.players[data.capturer.playerIndex];
+                if (isLoggedInPlayer(player)) {
                     this.data.captures++;
                     this.addXP(XP_CONFIG.REWARDS.CAPTURE_TOKEN, 'Capture');
                 }
             });
 
             eventBus.on(GameEvents.TOKEN_FINISH, (data) => {
-                if (!data.player?.isAI) {
+                if (isLoggedInPlayer(data.player)) {
                     this.addXP(XP_CONFIG.REWARDS.FINISH_TOKEN, 'Home');
                 }
             });
 
             eventBus.on(GameEvents.PLAYER_WIN, (data) => {
-                if (!data.player?.isAI) {
+                if (isLoggedInPlayer(data.player)) {
                     this.data.wins++;
                     this.addXP(XP_CONFIG.REWARDS.WIN_GAME, 'Victory!');
                 }
             });
 
             eventBus.on(GameEvents.DICE_ROLLED, (data) => {
-                if (data.value === 6 && !data.player?.isAI) {
+                if (data.value === 6 && isLoggedInPlayer(data.player)) {
                     this.addXP(XP_CONFIG.REWARDS.ROLL_SIX, 'Lucky 6');
                 }
             });
@@ -3001,8 +3011,15 @@
             });
 
             eventBus.on(GameEvents.GAME_END, () => {
-                // Award participation XP
-                this.addXP(XP_CONFIG.REWARDS.PLAY_GAME, 'Game played');
+                // Award participation XP only if logged-in user was playing
+                const userData = localStorage.getItem('spaceludo_user');
+                if (userData) {
+                    const loggedInUser = JSON.parse(userData);
+                    const wasPlaying = gameState.players.some(p => !p.isAI && p.name === loggedInUser.username);
+                    if (wasPlaying) {
+                        this.addXP(XP_CONFIG.REWARDS.PLAY_GAME, 'Game played');
+                    }
+                }
             });
         }
 
