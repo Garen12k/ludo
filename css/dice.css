@@ -161,11 +161,11 @@
 }
 
 .dice-3d[data-value="3"] {
-    transform: rotateY(90deg);
+    transform: rotateY(-90deg);
 }
 
 .dice-3d[data-value="4"] {
-    transform: rotateY(-90deg);
+    transform: rotateY(90deg);
 }
 
 .dice-3d[data-value="5"] {

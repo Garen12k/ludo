@@ -923,11 +923,12 @@
                     }
                 }
             } else {
-                // Staying on track
-                while (currentIndex !== endTrackIndex && loopGuard < TRACK_LENGTH + 10) {
+                // Staying on track - add each step including the final position
+                while (loopGuard < TRACK_LENGTH + 10) {
                     currentIndex = (currentIndex + 1) % TRACK_LENGTH;
                     if (MAIN_TRACK[currentIndex]) path.push(MAIN_TRACK[currentIndex]);
                     loopGuard++;
+                    if (currentIndex === endTrackIndex) break;
                 }
             }
 
@@ -1232,6 +1233,134 @@
 
     const TurnManager = {
         isProcessing: false,
+        autoPlayTimer: null,
+        autoPlayCountdown: 10,
+        autoPlayInterval: null,
+
+        clearAutoPlayTimer() {
+            if (this.autoPlayTimer) {
+                clearTimeout(this.autoPlayTimer);
+                this.autoPlayTimer = null;
+            }
+            if (this.autoPlayInterval) {
+                clearInterval(this.autoPlayInterval);
+                this.autoPlayInterval = null;
+            }
+            this.hideAutoPlayUI();
+        },
+
+        showAutoPlayUI(seconds) {
+            let container = document.getElementById('auto-play-timer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'auto-play-timer';
+                container.innerHTML = `
+                    <div class="auto-play-content">
+                        <span class="auto-play-text">Auto-play in</span>
+                        <span class="auto-play-countdown">${seconds}</span>
+                        <span class="auto-play-text">seconds</span>
+                    </div>
+                `;
+                container.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, rgba(255, 100, 100, 0.9), rgba(200, 50, 50, 0.9));
+                    padding: 12px 24px;
+                    border-radius: 25px;
+                    color: white;
+                    font-weight: bold;
+                    font-size: 16px;
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    box-shadow: 0 4px 20px rgba(255, 0, 0, 0.4);
+                    animation: autoPlayPulse 1s ease-in-out infinite;
+                `;
+                document.body.appendChild(container);
+
+                // Add animation style if not exists
+                if (!document.getElementById('auto-play-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'auto-play-style';
+                    style.textContent = `
+                        @keyframes autoPlayPulse {
+                            0%, 100% { transform: translateX(-50%) scale(1); }
+                            50% { transform: translateX(-50%) scale(1.05); }
+                        }
+                        .auto-play-countdown {
+                            background: rgba(255, 255, 255, 0.3);
+                            padding: 4px 12px;
+                            border-radius: 15px;
+                            min-width: 30px;
+                            text-align: center;
+                            font-size: 20px;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+            container.querySelector('.auto-play-countdown').textContent = seconds;
+            container.style.display = 'flex';
+        },
+
+        hideAutoPlayUI() {
+            const container = document.getElementById('auto-play-timer');
+            if (container) {
+                container.style.display = 'none';
+            }
+        },
+
+        startAutoPlayTimer() {
+            const player = gameState.getCurrentPlayer();
+            // Don't start timer for AI players or in online games where it's not your turn
+            if (player.isAI) return;
+            if (gameState.isOnlineGame && networkManager.isOnline && !networkManager.isLocalPlayerTurn()) return;
+
+            this.clearAutoPlayTimer();
+            this.autoPlayCountdown = 10;
+
+            // Show UI and update every second
+            this.autoPlayInterval = setInterval(() => {
+                this.autoPlayCountdown--;
+                if (this.autoPlayCountdown > 0) {
+                    this.showAutoPlayUI(this.autoPlayCountdown);
+                }
+            }, 1000);
+
+            this.showAutoPlayUI(this.autoPlayCountdown);
+
+            // Auto-play after 10 seconds
+            this.autoPlayTimer = setTimeout(async () => {
+                this.clearAutoPlayTimer();
+                await this.autoPlay();
+            }, 10000);
+        },
+
+        async autoPlay() {
+            const player = gameState.getCurrentPlayer();
+            if (player.isAI) return;
+
+            // If waiting to roll, roll the dice
+            if (gameState.turnPhase === TURN_PHASE.WAITING) {
+                eventBus.emit(GameEvents.SHOW_MESSAGE, {
+                    message: 'Auto-playing...',
+                    type: 'info'
+                });
+                await this.rollDice();
+            }
+            // If selecting a token, let AI choose
+            else if (gameState.turnPhase === TURN_PHASE.SELECTING && gameState.validMoves.length > 0) {
+                eventBus.emit(GameEvents.SHOW_MESSAGE, {
+                    message: 'Auto-playing...',
+                    type: 'info'
+                });
+                const move = await AIController.selectMove(gameState.validMoves, gameState);
+                await this.executeMove(move);
+            }
+        },
 
         async waitWhilePaused() {
             while (gameState.isPaused) {
@@ -1254,12 +1383,18 @@
             // AI players take their turn automatically
             if (player.isAI && (!gameState.isOnlineGame || (networkManager.isOnline && networkManager.isHost))) {
                 await this.handleAITurn();
+            } else {
+                // Start auto-play timer for human players
+                this.startAutoPlayTimer();
             }
         },
 
         async rollDice() {
             await this.waitWhilePaused();
             if (gameState.turnPhase !== TURN_PHASE.WAITING) return null;
+
+            // Clear auto-play timer when player takes action
+            this.clearAutoPlayTimer();
 
             gameState.turnPhase = TURN_PHASE.ROLLING;
             const value = await Dice.roll();
@@ -1305,6 +1440,9 @@
             if (gameState.getCurrentPlayer().isAI) {
                 const move = await AIController.selectMove(validMoves, gameState);
                 await this.executeMove(move);
+            } else {
+                // Start auto-play timer for human player to select token
+                this.startAutoPlayTimer();
             }
 
             return value;
@@ -1317,6 +1455,9 @@
             if (gameState.isOnlineGame && networkManager.isOnline && !networkManager.isLocalPlayerTurn()) {
                 return;
             }
+
+            // Clear auto-play timer when player selects token
+            this.clearAutoPlayTimer();
 
             const move = gameState.validMoves.find(m => m.tokenId === tokenId);
             if (!move) return;
@@ -1400,6 +1541,9 @@
                 if (gameState.getCurrentPlayer().isAI) {
                     await this.delay(ANIMATION_DURATIONS.AI_THINK);
                     await this.rollDice();
+                } else {
+                    // Start auto-play timer for human player's extra turn
+                    this.startAutoPlayTimer();
                 }
             } else {
                 this.endTurn();
@@ -1408,6 +1552,9 @@
 
         async endTurn() {
             await this.waitWhilePaused();
+
+            // Clear auto-play timer
+            this.clearAutoPlayTimer();
 
             // Broadcast turn end in online mode (from active player or host for AI)
             if (gameState.isOnlineGame && networkManager.isOnline && networkManager.shouldHandleCurrentTurn()) {
@@ -1710,11 +1857,13 @@
             this.rollButton.disabled = false;
 
             // Set final rotation based on value
+            // right face has 3 dots, left face has 4 dots
+            // rotateY(-90deg) shows right face, rotateY(90deg) shows left face
             const rotations = {
                 1: { x: 0, y: 0 },
                 2: { x: -90, y: 0 },
-                3: { x: 0, y: 90 },
-                4: { x: 0, y: -90 },
+                3: { x: 0, y: -90 },
+                4: { x: 0, y: 90 },
                 5: { x: 90, y: 0 },
                 6: { x: 180, y: 0 }
             };

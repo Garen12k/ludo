@@ -262,32 +262,29 @@ export class Token {
             const homePath = HOME_PATHS[this.color];
             const hasCompletedLoop = this.totalSteps >= (TRACK_LENGTH - 1);
 
-            let currentIndex = this.trackIndex;
+            // Calculate steps to home path entry
+            let stepsToEntry = 0;
+            if (hasCompletedLoop) {
+                if (this.trackIndex <= homePathEntry) {
+                    stepsToEntry = homePathEntry - this.trackIndex;
+                } else {
+                    stepsToEntry = (TRACK_LENGTH - this.trackIndex) + homePathEntry;
+                }
+            }
 
             for (let i = 1; i <= steps; i++) {
-                currentIndex = (this.trackIndex + i) % TRACK_LENGTH;
-
-                // Check if entering home path
-                if (hasCompletedLoop && this.trackIndex !== homePathEntry) {
-                    // Calculate if we've reached home path entry
-                    let stepsToEntry;
-                    if (this.trackIndex <= homePathEntry) {
-                        stepsToEntry = homePathEntry - this.trackIndex;
-                    } else {
-                        stepsToEntry = (TRACK_LENGTH - this.trackIndex) + homePathEntry;
+                // Check if we should enter home path
+                if (hasCompletedLoop && this.trackIndex !== homePathEntry && i > stepsToEntry) {
+                    // We're on home path now
+                    const homeIdx = i - stepsToEntry - 1;
+                    if (homeIdx < homePath.length) {
+                        positions.push(homePath[homeIdx]);
                     }
-
-                    if (i > stepsToEntry) {
-                        // We're on home path now
-                        const homeIdx = i - stepsToEntry - 1;
-                        if (homeIdx < homePath.length) {
-                            positions.push(homePath[homeIdx]);
-                        }
-                        continue;
-                    }
+                } else {
+                    // Still on main track
+                    const currentIndex = (this.trackIndex + i) % TRACK_LENGTH;
+                    positions.push(MAIN_TRACK[currentIndex]);
                 }
-
-                positions.push(MAIN_TRACK[currentIndex]);
             }
         }
 
