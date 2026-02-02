@@ -1,18 +1,22 @@
-player when invite other cant see there name it shows only player.
+player when invite other cant see there name it shows only player.(done)
 
-edit auto-play to be showen after 15 second then auto can apper and play.
+edit auto-play to be showen after 15 second then auto can apper and play.(done)
+
+i should be able to move other player token ot roll there dice.(done)
 
 add theme sound in backgroud.
 
-auto play apear to everyone, it need to show only to the player and other no need to see it.
+auto play apear to everyone, it need to show only to the player and other no need to see it.(done)
 
-add optin to remove auto-play.
+add optin to remove auto-play.(done)
 
-player getting exp when he is not in the game.
+player getting exp when he is not in the game.(done)
 
-sometime when dice show 3 token make 4 move it should be 3 move and when dice is 4 token make 3 move.
+sometime when dice show 3 token make 4 move it should be 3 move and when dice is 4 token make 3 move.(done)
 
-when dice near to his line sometime skip it and shouldnt skip line at all.
+when dice is moving line sometime skip it and shouldnt skip line at all.(done)
+
+safe zone need to be in the same box when token leave house
 
 
 
