@@ -214,18 +214,8 @@
         BLUE: 38
     };
 
-    // Safe zone positions (star spots + starting positions - cannot be captured here)
+    // Safe zone positions (starting positions only - cannot be captured here)
     const SAFE_ZONES = [
-        // Star spots
-        { row: 6, col: 2 },   // Red side - row 6
-        { row: 2, col: 6 },   // Top side - col 6
-        { row: 2, col: 8 },   // Top side - col 8
-        { row: 6, col: 12 },  // Right side - row 6
-        { row: 8, col: 12 },  // Right side - row 8
-        { row: 12, col: 8 },  // Bottom side - col 8
-        { row: 12, col: 6 },  // Bottom side - col 6
-        { row: 8, col: 2 },   // Left side - row 8
-        // Starting positions (where tokens leave house)
         { row: 6, col: 1 },   // Red start
         { row: 1, col: 8 },   // Green start
         { row: 8, col: 13 },  // Yellow start
