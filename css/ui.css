@@ -1989,6 +1989,142 @@
     transform: translateX(28px);
 }
 
+/* Volume Slider */
+.volume-slider {
+    width: 120px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(90deg, rgba(51, 102, 255, 0.3), rgba(100, 150, 255, 0.3));
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #6496ff, #3366ff);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
+    transition: all 0.2s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(100, 150, 255, 0.8);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #6496ff, #3366ff);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
+}
+
+/* Floating Volume Control */
+.volume-control-floating {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+.login-card .volume-control-floating {
+    position: relative;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    bottom: auto;
+    right: auto;
+}
+
+.menu-volume {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+}
+
+.volume-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(51, 102, 255, 0.6), rgba(100, 150, 255, 0.4));
+    border: 2px solid rgba(100, 150, 255, 0.5);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(100, 150, 255, 0.4);
+}
+
+.volume-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(100, 150, 255, 0.6);
+}
+
+.volume-popup {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: rgba(15, 15, 40, 0.95);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-width: 150px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.volume-popup.active {
+    display: flex;
+}
+
+.volume-slider-mini {
+    width: 120px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(90deg, rgba(51, 102, 255, 0.3), rgba(100, 150, 255, 0.3));
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.volume-slider-mini::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #6496ff, #3366ff);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
+}
+
+.volume-slider-mini::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #6496ff, #3366ff);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.volume-percent {
+    color: #6496ff;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
 .settings-buttons {
     display: flex;
     justify-content: center;

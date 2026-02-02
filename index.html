@@ -101,6 +101,15 @@
                 <div class="login-footer">
                     <div class="login-stats" id="login-stats"></div>
                 </div>
+
+                <!-- Volume Control -->
+                <div class="volume-control-floating" id="login-volume-control">
+                    <button class="volume-btn" id="login-volume-btn">🔊</button>
+                    <div class="volume-popup" id="login-volume-popup">
+                        <input type="range" class="volume-slider-mini" id="login-volume-slider" min="0" max="100" value="9">
+                        <span class="volume-percent" id="login-volume-percent">9%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -151,6 +160,15 @@
                     <span class="btn-icon">&#128247;</span>
                     Player Pictures
                 </button>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="volume-control-floating menu-volume" id="menu-volume-control">
+                <button class="volume-btn" id="menu-volume-btn">🔊</button>
+                <div class="volume-popup" id="menu-volume-popup">
+                    <input type="range" class="volume-slider-mini" id="menu-volume-slider" min="0" max="100" value="9">
+                    <span class="volume-percent" id="menu-volume-percent">9%</span>
+                </div>
             </div>
         </div>
     </div>
@@ -553,9 +571,21 @@
                         </div>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="music-toggle">
+                        <input type="checkbox" id="music-toggle" checked>
                         <span class="toggle-slider"></span>
                     </label>
+                </div>
+
+                <!-- Music Volume Slider -->
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-icon">&#128266;</span>
+                        <div class="setting-text">
+                            <span class="setting-label">Music Volume</span>
+                            <span class="setting-desc" id="volume-value">30%</span>
+                        </div>
+                    </div>
+                    <input type="range" id="music-volume" class="volume-slider" min="0" max="100" value="30">
                 </div>
 
                 <!-- Vibration Toggle -->
@@ -614,6 +644,6 @@
     <canvas id="particle-canvas"></canvas>
 
     <!-- JavaScript Bundle (no server required) -->
-    <script src="js/game-bundle.js?v=24"></script>
+    <script src="js/game-bundle.js?v=35"></script>
 </body>
 </html>

@@ -214,16 +214,22 @@
         BLUE: 38
     };
 
-    // Safe zone positions (star spots - cannot be captured here)
+    // Safe zone positions (star spots + starting positions - cannot be captured here)
     const SAFE_ZONES = [
+        // Star spots
         { row: 6, col: 2 },   // Red side - row 6
         { row: 2, col: 6 },   // Top side - col 6
-        { row: 2, col: 8 },   // Top side - col 8 (Green entry)
+        { row: 2, col: 8 },   // Top side - col 8
         { row: 6, col: 12 },  // Right side - row 6
-        { row: 8, col: 12 },  // Right side - row 8 (Yellow entry)
+        { row: 8, col: 12 },  // Right side - row 8
         { row: 12, col: 8 },  // Bottom side - col 8
-        { row: 12, col: 6 },  // Bottom side - col 6 (Blue entry)
-        { row: 8, col: 2 }    // Left side - row 8
+        { row: 12, col: 6 },  // Bottom side - col 6
+        { row: 8, col: 2 },   // Left side - row 8
+        // Starting positions (where tokens leave house)
+        { row: 6, col: 1 },   // Red start
+        { row: 1, col: 8 },   // Green start
+        { row: 8, col: 13 },  // Yellow start
+        { row: 13, col: 6 }   // Blue start
     ];
 
     function isSafeZone(row, col) {
@@ -3055,7 +3061,8 @@
 
         loadMusicSetting() {
             const saved = localStorage.getItem('spaceludo_music');
-            this.musicEnabled = saved === 'true';
+            // Default to ON if not set
+            this.musicEnabled = saved !== 'false';
             const toggle = document.getElementById('music-toggle');
             if (toggle) toggle.checked = this.musicEnabled;
         }
@@ -3083,10 +3090,27 @@
 
             // Start music when game starts if enabled
             eventBus.on(GameEvents.GAME_START, () => {
-                if (this.musicEnabled) {
+                if (this.musicEnabled && !this.audioElement) {
                     this.startBackgroundMusic();
                 }
             });
+
+            // Start music on first user interaction (browsers require this)
+            const startMusicOnClick = () => {
+                if (this.musicEnabled && !this.audioElement) {
+                    this.startBackgroundMusic();
+                }
+            };
+
+            // Listen for any click to start music
+            document.addEventListener('click', startMusicOnClick, { once: true });
+
+            // Also try to start immediately (may work if user already interacted)
+            setTimeout(() => {
+                if (this.musicEnabled && !this.audioElement) {
+                    this.startBackgroundMusic();
+                }
+            }, 500);
         }
 
         init() {
@@ -3097,7 +3121,8 @@
 
                 // Create master gain for music
                 this.musicGain = this.context.createGain();
-                this.musicGain.gain.value = 0.15; // Low volume for ambient
+                const savedVolume = localStorage.getItem('spaceLudoMusicVolume');
+                this.musicGain.gain.value = savedVolume !== null ? parseFloat(savedVolume) : 0.3;
                 this.musicGain.connect(this.context.destination);
             } catch (e) {
                 console.warn('Audio not supported');
@@ -3105,139 +3130,54 @@
         }
 
         startBackgroundMusic() {
-            if (!this.context || !this.musicEnabled) return;
+            if (!this.musicEnabled) return;
 
             // Stop any existing music
             this.stopBackgroundMusic();
 
-            // Create relaxing ambient space music
-            // Using multiple oscillators with slow modulation for a dreamy effect
+            // Play MP3 file
+            this.audioElement = new Audio('assets/audio.mp3');
+            this.audioElement.loop = true;
 
-            // Base drone - deep space hum
-            const drone = this.createAmbientDrone(55, 0.08); // A1
-            this.musicNodes.push(drone);
+            // Get saved volume (default 9%)
+            const savedVolume = localStorage.getItem('spaceLudoMusicVolume');
+            this.audioElement.volume = savedVolume !== null ? parseFloat(savedVolume) : 0.09;
 
-            // Pad layer 1 - soft chord
-            const pad1 = this.createAmbientPad(220, 0.04); // A3
-            this.musicNodes.push(pad1);
+            // Add error handler
+            this.audioElement.onerror = (e) => {
+                console.error('Music file error:', e);
+                console.error('Audio error code:', this.audioElement.error?.code);
+            };
 
-            // Pad layer 2 - harmony
-            const pad2 = this.createAmbientPad(277.18, 0.03); // C#4
-            this.musicNodes.push(pad2);
+            this.audioElement.oncanplay = () => {
+                console.log('Music ready to play');
+            };
 
-            // Pad layer 3 - high shimmer
-            const pad3 = this.createAmbientPad(329.63, 0.025); // E4
-            this.musicNodes.push(pad3);
-
-            // Subtle high sparkle
-            const sparkle = this.createSparkle(659.25, 0.015); // E5
-            this.musicNodes.push(sparkle);
+            this.audioElement.play().then(() => {
+                console.log('Music playing!');
+            }).catch(e => {
+                console.warn('Could not autoplay music:', e);
+            });
         }
 
-        createAmbientDrone(freq, volume) {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-            const filter = this.context.createBiquadFilter();
-
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-
-            // Slow frequency modulation for movement
-            const lfo = this.context.createOscillator();
-            const lfoGain = this.context.createGain();
-            lfo.type = 'sine';
-            lfo.frequency.value = 0.05; // Very slow
-            lfoGain.gain.value = 2;
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-            lfo.start();
-
-            filter.type = 'lowpass';
-            filter.frequency.value = 200;
-            filter.Q.value = 1;
-
-            gain.gain.value = volume;
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.musicGain);
-
-            osc.start();
-
-            return { osc, lfo, gain, filter };
-        }
-
-        createAmbientPad(freq, volume) {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-            const filter = this.context.createBiquadFilter();
-
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-
-            // Slow tremolo effect
-            const lfo = this.context.createOscillator();
-            const lfoGain = this.context.createGain();
-            lfo.type = 'sine';
-            lfo.frequency.value = 0.1 + Math.random() * 0.1; // Slight randomness
-            lfoGain.gain.value = volume * 0.3;
-            lfo.connect(lfoGain);
-            lfoGain.connect(gain.gain);
-            lfo.start();
-
-            // Frequency drift
-            const freqLfo = this.context.createOscillator();
-            const freqLfoGain = this.context.createGain();
-            freqLfo.type = 'sine';
-            freqLfo.frequency.value = 0.02 + Math.random() * 0.03;
-            freqLfoGain.gain.value = freq * 0.01; // 1% drift
-            freqLfo.connect(freqLfoGain);
-            freqLfoGain.connect(osc.frequency);
-            freqLfo.start();
-
-            filter.type = 'lowpass';
-            filter.frequency.value = 800;
-            filter.Q.value = 0.5;
-
-            gain.gain.value = volume;
-
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.musicGain);
-
-            osc.start();
-
-            return { osc, lfo, freqLfo, gain, filter };
-        }
-
-        createSparkle(freq, volume) {
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-
-            // Random volume modulation for twinkling effect
-            const lfo = this.context.createOscillator();
-            const lfoGain = this.context.createGain();
-            lfo.type = 'sine';
-            lfo.frequency.value = 0.3 + Math.random() * 0.2;
-            lfoGain.gain.value = volume * 0.8;
-            lfo.connect(lfoGain);
-            lfoGain.connect(gain.gain);
-            lfo.start();
-
-            gain.gain.value = volume;
-
-            osc.connect(gain);
-            gain.connect(this.musicGain);
-
-            osc.start();
-
-            return { osc, lfo, gain };
+        setMusicVolume(volume) {
+            localStorage.setItem('spaceLudoMusicVolume', volume.toString());
+            if (this.audioElement) {
+                this.audioElement.volume = volume;
+            }
+            if (this.musicGain) {
+                this.musicGain.gain.value = volume;
+            }
         }
 
         stopBackgroundMusic() {
+            // Stop audio element
+            if (this.audioElement) {
+                this.audioElement.pause();
+                this.audioElement.currentTime = 0;
+                this.audioElement = null;
+            }
+
             this.musicNodes.forEach(node => {
                 try {
                     if (node.osc) node.osc.stop();
@@ -3248,12 +3188,6 @@
                 }
             });
             this.musicNodes = [];
-        }
-
-        setMusicVolume(volume) {
-            if (this.musicGain) {
-                this.musicGain.gain.value = volume;
-            }
         }
 
         playDiceRoll() {
@@ -3469,6 +3403,27 @@
                 autoplayToggle.checked = saved !== 'false'; // Default to true
             }
 
+            // Music volume slider handler
+            const volumeSlider = document.getElementById('music-volume');
+            const volumeValue = document.getElementById('volume-value');
+            if (volumeSlider) {
+                // Load saved volume (default 9%)
+                const savedVolume = localStorage.getItem('spaceLudoMusicVolume');
+                const volumePercent = savedVolume !== null ? Math.round(parseFloat(savedVolume) * 100) : 9;
+                volumeSlider.value = volumePercent;
+                if (volumeValue) volumeValue.textContent = volumePercent + '%';
+
+                volumeSlider.addEventListener('input', (e) => {
+                    const percent = parseInt(e.target.value);
+                    const volume = percent / 100;
+                    if (volumeValue) volumeValue.textContent = percent + '%';
+                    if (window.soundManager && window.soundManager.audioElement) {
+                        window.soundManager.audioElement.volume = volume;
+                    }
+                    localStorage.setItem('spaceLudoMusicVolume', volume.toString());
+                });
+            }
+
             document.getElementById('btn-menu')?.addEventListener('click', () => {
                 gameState.phase = GAME_PHASE.MENU;
                 this.uiRenderer.showScreen('menu');
@@ -3476,6 +3431,74 @@
 
             document.getElementById('btn-restart')?.addEventListener('click', () => {
                 this.startGame();
+            });
+
+            // Setup floating volume controls
+            this.setupFloatingVolumeControl('login');
+            this.setupFloatingVolumeControl('menu');
+        }
+
+        setupFloatingVolumeControl(prefix) {
+            const btn = document.getElementById(`${prefix}-volume-btn`);
+            const popup = document.getElementById(`${prefix}-volume-popup`);
+            const slider = document.getElementById(`${prefix}-volume-slider`);
+            const percent = document.getElementById(`${prefix}-volume-percent`);
+
+            if (!btn || !popup || !slider) return;
+
+            // Load saved volume
+            const savedVolume = localStorage.getItem('spaceLudoMusicVolume');
+            const volumePercent = savedVolume !== null ? Math.round(parseFloat(savedVolume) * 100) : 9;
+            slider.value = volumePercent;
+            if (percent) percent.textContent = volumePercent + '%';
+
+            // Update button icon based on volume
+            const updateIcon = (vol) => {
+                if (vol === 0) btn.textContent = '🔇';
+                else if (vol < 30) btn.textContent = '🔈';
+                else if (vol < 70) btn.textContent = '🔉';
+                else btn.textContent = '🔊';
+            };
+            updateIcon(volumePercent);
+
+            // Toggle popup
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                popup.classList.toggle('active');
+            });
+
+            // Close popup when clicking outside
+            document.addEventListener('click', () => {
+                popup.classList.remove('active');
+            });
+
+            popup.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Volume slider change
+            slider.addEventListener('input', (e) => {
+                const vol = parseInt(e.target.value);
+                const volume = vol / 100;
+                if (percent) percent.textContent = vol + '%';
+                updateIcon(vol);
+
+                if (window.soundManager && window.soundManager.audioElement) {
+                    window.soundManager.audioElement.volume = volume;
+                }
+                localStorage.setItem('spaceLudoMusicVolume', volume.toString());
+
+                // Sync other volume controls
+                this.syncVolumeControls(vol);
+            });
+        }
+
+        syncVolumeControls(volumePercent) {
+            ['login', 'menu', 'music'].forEach(prefix => {
+                const slider = document.getElementById(`${prefix}-volume-slider`) || document.getElementById(`${prefix}-volume`);
+                const percent = document.getElementById(`${prefix}-volume-percent`) || document.getElementById('volume-value');
+                if (slider) slider.value = volumePercent;
+                if (percent) percent.textContent = volumePercent + '%';
             });
         }
 
@@ -5258,6 +5281,7 @@
 
         // Initialize sound
         const soundManager = new SoundManager();
+        window.soundManager = soundManager; // Make accessible for volume control
 
         // Initialize XP system
         const xpManager = new XPManager();
