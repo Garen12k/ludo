@@ -837,7 +837,19 @@
             const entryIndex = token.getEntryTrackIndex();
             const homeEntryPoint = HOME_ENTRY_POINTS[token.color];
 
-            // Calculate steps to home entry
+            // Calculate how far the token has traveled from its start
+            let distanceFromStart;
+            if (token.trackIndex >= entryIndex) {
+                distanceFromStart = token.trackIndex - entryIndex;
+            } else {
+                distanceFromStart = (TRACK_LENGTH - entryIndex) + token.trackIndex;
+            }
+
+            // Token must travel at least 51 cells (almost full lap) before entering home
+            // This is TRACK_LENGTH - 1 cells from start to be eligible for home entry
+            const minDistanceForHome = TRACK_LENGTH - 1; // 51 cells
+
+            // Calculate steps to home entry (only if eligible)
             let stepsToHomeEntry;
             if (token.trackIndex <= homeEntryPoint) {
                 stepsToHomeEntry = homeEntryPoint - token.trackIndex;
@@ -845,8 +857,15 @@
                 stepsToHomeEntry = (TRACK_LENGTH - token.trackIndex) + homeEntryPoint;
             }
 
+            // Check if token is eligible to enter home (has traveled enough)
+            // Token is eligible if: distanceFromStart + steps >= minDistanceForHome
+            const willBeEligible = (distanceFromStart + steps) >= minDistanceForHome;
+
+            // Debug logging for home entry
+            console.log(`HOME CHECK [${token.color}]: trackIndex=${token.trackIndex}, steps=${steps}, distanceFromStart=${distanceFromStart}, stepsToHomeEntry=${stepsToHomeEntry}, willBeEligible=${willBeEligible}, condition=${steps > stepsToHomeEntry}`);
+
             // Check if we should enter home path
-            if (steps > stepsToHomeEntry && stepsToHomeEntry >= 0) {
+            if (willBeEligible && steps > stepsToHomeEntry && stepsToHomeEntry >= 0) {
                 const homePathSteps = steps - stepsToHomeEntry - 1;
                 if (homePathSteps >= HOME_PATH_LENGTH) {
                     return null; // Overshoot
@@ -1373,7 +1392,13 @@
         },
 
         async startTurn() {
+            // Don't start turn if game is not in playing phase
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
+
             await this.waitWhilePaused();
+
+            // Check again after pause
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
 
             const player = gameState.getCurrentPlayer();
             gameState.turnPhase = TURN_PHASE.WAITING;
@@ -1381,6 +1406,9 @@
             eventBus.emit(GameEvents.TURN_START, { player });
 
             await this.delay(ANIMATION_DURATIONS.TURN_DELAY);
+
+            // Check again after delay
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
 
             await this.waitWhilePaused();
 
@@ -1394,6 +1422,9 @@
         },
 
         async rollDice() {
+            // Don't roll if game is not in playing phase
+            if (gameState.phase !== GAME_PHASE.PLAYING) return null;
+
             await this.waitWhilePaused();
             if (gameState.turnPhase !== TURN_PHASE.WAITING) return null;
 
@@ -1577,8 +1608,19 @@
         },
 
         async handleAITurn() {
+            // Don't handle AI turn if game is not in playing phase
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
+
             await this.waitWhilePaused();
+
+            // Check again after pause
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
+
             await this.delay(ANIMATION_DURATIONS.AI_THINK);
+
+            // Check again after delay
+            if (gameState.phase !== GAME_PHASE.PLAYING) return;
+
             await this.waitWhilePaused();
             await this.rollDice();
         },
@@ -2103,9 +2145,10 @@
         }
 
         setupEventListeners() {
-            eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
-                this.captureEffect(data.captured);
-            });
+            // Capture effect disabled
+            // eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
+            //     this.captureEffect(data.captured);
+            // });
 
             eventBus.on(GameEvents.EFFECT_VICTORY, () => {
                 this.victoryEffect();
@@ -2262,10 +2305,10 @@
         }
 
         setupEventListeners() {
-            // Token capture - explosion of emojis
-            eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
-                this.showEmojiBurst(['💥', '💢', '⚡', '🔥', '😈'], 'center', 12);
-            });
+            // Token capture - disabled
+            // eventBus.on(GameEvents.TOKEN_CAPTURE, (data) => {
+            //     this.showEmojiBurst(['💥', '💢', '⚡', '🔥', '😈'], 'center', 12);
+            // });
 
             // Token move to home/finish
             eventBus.on(GameEvents.TOKEN_FINISH, () => {
@@ -2451,14 +2494,30 @@
                         btn.classList.add('emote-triggered');
                         setTimeout(() => btn.classList.remove('emote-triggered'), 500);
 
-                        // Show the emote
+                        // Show the emote locally
                         this.showPlayerEmote(emoji);
+
+                        // Broadcast to other players in online mode
+                        if (typeof networkManager !== 'undefined' && networkManager.roomId) {
+                            networkManager.broadcastAction('PLAYER_EMOTE', {
+                                emoji: emoji,
+                                playerName: localStorage.getItem('spaceludo_username') || 'Player'
+                            });
+                        }
 
                         // Play a sound if enabled
                         if (gameState.soundEnabled) {
                             this.playEmoteSound();
                         }
                     });
+                }
+            });
+
+            // Listen for emotes from other players
+            eventBus.on('online:playerEmote', (data) => {
+                this.showPlayerEmote(data.emoji);
+                if (gameState.soundEnabled) {
+                    this.playEmoteSound();
                 }
             });
         }
@@ -3064,7 +3123,8 @@
 
             eventBus.on(GameEvents.DICE_ROLL_START, () => this.playDiceRoll());
             eventBus.on(GameEvents.TOKEN_MOVE, () => this.playMove());
-            eventBus.on(GameEvents.TOKEN_CAPTURE, () => this.playCapture());
+            // Capture sound disabled
+            // eventBus.on(GameEvents.TOKEN_CAPTURE, () => this.playCapture());
             eventBus.on(GameEvents.PLAYER_WIN, () => this.playVictory());
 
             // Music toggle handler
@@ -3092,15 +3152,20 @@
                 }
             };
 
-            // Listen for any click to start music
-            document.addEventListener('click', startMusicOnClick, { once: true });
-
-            // Also try to start immediately (may work if user already interacted)
-            setTimeout(() => {
-                if (this.musicEnabled && !this.audioElement) {
+            // Keep trying to start music on clicks until it works
+            const tryStartMusic = () => {
+                if (this.musicEnabled && (!this.audioElement || this.audioElement.paused)) {
                     this.startBackgroundMusic();
                 }
-            }, 500);
+            };
+
+            // Listen for clicks to start music
+            document.addEventListener('click', tryStartMusic);
+            document.addEventListener('touchstart', tryStartMusic);
+
+            // Also try to start immediately (may work if user already interacted)
+            setTimeout(tryStartMusic, 500);
+            setTimeout(tryStartMusic, 1500);
         }
 
         init() {
@@ -3415,6 +3480,8 @@
             }
 
             document.getElementById('btn-menu')?.addEventListener('click', () => {
+                // Stop the game properly
+                this.leaveGame();
                 gameState.phase = GAME_PHASE.MENU;
                 this.uiRenderer.showScreen('menu');
             });
@@ -3681,6 +3748,36 @@
             // Clear all from localStorage at once
             localStorage.removeItem('spaceLudoProfiles');
             console.log('All profiles reset to default');
+        }
+
+        leaveGame() {
+            // Stop all game timers
+            TurnManager.clearAutoPlayTimer();
+
+            // Stop any ongoing animations/sounds
+            if (window.soundManager) {
+                window.soundManager.stopBackgroundMusic();
+            }
+
+            // Clear game state
+            gameState.phase = GAME_PHASE.MENU;
+            gameState.currentPlayerIndex = 0;
+            gameState.diceValue = null;
+            gameState.hasRolled = false;
+            gameState.selectedToken = null;
+
+            // Clear any active intervals
+            if (gameState.gameLoopInterval) {
+                clearInterval(gameState.gameLoopInterval);
+                gameState.gameLoopInterval = null;
+            }
+
+            // Leave online room if connected
+            if (typeof networkManager !== 'undefined' && networkManager.roomId) {
+                networkManager.leaveRoom();
+            }
+
+            console.log('Left the game');
         }
 
         startGame() {
@@ -4332,6 +4429,9 @@
                     break;
                 case 'CHAT_MESSAGE':
                     eventBus.emit('online:chatMessage', action.payload);
+                    break;
+                case 'PLAYER_EMOTE':
+                    eventBus.emit('online:playerEmote', action.payload);
                     break;
                 case 'TURN_END':
                     this.handleRemoteTurnEnd(action.payload);
