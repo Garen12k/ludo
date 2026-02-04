@@ -4,7 +4,7 @@ edit auto-play to be showen after 15 second then auto can apper and play.(done)
 
 i should be able to move other player token ot roll there dice.(done)
 
-add theme sound in backgroud.
+add theme sound in backgroud.(done)
 
 auto play apear to everyone, it need to show only to the player and other no need to see it.(done)
 
@@ -16,7 +16,14 @@ sometime when dice show 3 token make 4 move it should be 3 move and when dice is
 
 when dice is moving line sometime skip it and shouldnt skip line at all.(done)
 
-safe zone need to be in the same box when token leave house
+safe zone need to be in the same box when token leave house(progress)
+
+eomji shuld apear to all player when player intract with it.(done)
+
+
+when any player click on home button player still in game aand the sound of dice can be heered, this should not happen it should make him leave the game and let the ai countince.(done)
+
+
 
 
 
