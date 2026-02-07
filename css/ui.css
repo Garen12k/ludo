@@ -268,8 +268,8 @@
 /* User display in menu */
 .user-display {
     position: fixed;
-    top: 60px;
-    left: 20px;
+    top: clamp(10px, 4vh, 60px);
+    left: clamp(10px, 2vw, 20px);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -350,10 +350,10 @@
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 500px;
-    height: 550px;
+    width: clamp(200px, 30vw, 500px);
+    height: clamp(220px, 33vw, 550px);
     pointer-events: none;
-    z-index: 100;
+    z-index: 5;
 }
 
 .shanks-image {
@@ -421,7 +421,8 @@
 /* Main Menu Styles */
 .menu-container {
     text-align: center;
-    min-width: 400px;
+    min-width: 0;
+    width: min(400px, 85vw);
     max-width: 90vw;
     animation: fadeInUp 0.8s ease-out;
     position: relative;
@@ -440,9 +441,9 @@
 }
 
 .game-title {
-    font-size: 3.5rem;
+    font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 800;
-    letter-spacing: 8px;
+    letter-spacing: clamp(4px, 1vw, 8px);
     margin-bottom: 10px;
     color: #6699ff;
     text-transform: uppercase;
@@ -476,10 +477,10 @@
 }
 
 .subtitle {
-    font-size: 1.1rem;
+    font-size: clamp(0.8rem, 2vw, 1.1rem);
     color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 4px;
-    margin-bottom: 40px;
+    letter-spacing: clamp(2px, 0.5vw, 4px);
+    margin-bottom: clamp(20px, 4vw, 40px);
     text-transform: uppercase;
     animation: subtitleFade 2s ease-in-out infinite alternate;
 }
@@ -673,7 +674,8 @@
 
 /* Setup Screen */
 .setup-container {
-    min-width: 450px;
+    min-width: 0;
+    width: min(450px, 90vw);
     max-width: 90vw;
 }
 
@@ -815,10 +817,10 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 100%;
-    padding: 10px;
+    height: 100vh;
+    padding: clamp(5px, 1vh, 10px);
     position: relative;
-    gap: 10px;
+    gap: clamp(3px, 1vh, 10px);
 }
 
 /* Board Layout - Horizontal: Left Players | Board | Right Players */
@@ -954,8 +956,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
-    padding: 10px;
+    gap: 12px;
+    padding: 5px 10px;
     z-index: 20;
     position: relative;
 }
@@ -1530,6 +1532,13 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+    .menu-background-image {
+        width: clamp(150px, 25vw, 400px);
+        height: clamp(165px, 28vw, 440px);
+    }
+}
+
 @media (max-width: 768px) {
     .game-title {
         font-size: 2.5rem;
@@ -1541,6 +1550,13 @@
         min-width: auto;
         width: 90%;
         padding: 25px;
+    }
+
+    .menu-background-image {
+        width: clamp(120px, 22vw, 300px);
+        height: clamp(130px, 24vw, 330px);
+        top: 10px;
+        right: 10px;
     }
 
     .player-panel.top {
@@ -1581,6 +1597,10 @@
 
     .difficulty-buttons {
         flex-direction: column;
+    }
+
+    .menu-background-image {
+        display: none;
     }
 }
 
@@ -2188,20 +2208,133 @@
     }
 }
 
-/* Responsive Layout for Board and Players */
-@media (max-width: 700px) {
+/* ============================================
+   RESPONSIVE LAYOUT FOR ALL LAPTOP SCREENS
+   ============================================ */
+
+/* Large screens 1920px+ (17" laptops, external monitors) */
+@media (min-width: 1920px) and (min-height: 1000px) {
     .board-layout {
-        gap: 8px;
+        gap: 20px;
+        max-width: 900px;
     }
 
     .side-players {
-        min-width: 60px;
-        height: min(55vmin, 320px);
-        padding: 15px 0;
+        min-width: 100px;
+        height: min(65vmin, 580px);
     }
 
-    .ludo-board {
-        width: min(55vmin, 320px);
+    .player-card {
+        padding: 10px 14px;
+        min-width: 80px;
+    }
+
+    .player-card .player-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.85rem;
+        max-width: 75px;
+    }
+
+    .dice-container {
+        width: 90px;
+        height: 90px;
+    }
+}
+
+/* Standard HD 1440-1919px (15" MacBook Pro, 15.6" Windows at 1080p) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .board-layout {
+        gap: 18px;
+        max-width: 850px;
+    }
+
+    .side-players {
+        min-width: 90px;
+        height: min(65vmin, 500px);
+    }
+
+    .player-card .player-avatar {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+/* Medium 1280-1439px (13" MacBook Air/Pro) */
+@media (min-width: 1280px) and (max-width: 1439px) {
+    .board-layout {
+        gap: 15px;
+        max-width: 750px;
+    }
+
+    .side-players {
+        min-width: 80px;
+        height: min(62vmin, 460px);
+    }
+
+    .player-card .player-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.75rem;
+        max-width: 65px;
+    }
+}
+
+/* Smaller laptops 1024-1279px (11-12" screens) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .board-layout {
+        gap: 12px;
+        max-width: 650px;
+    }
+
+    .side-players {
+        min-width: 70px;
+        height: min(58vmin, 400px);
+    }
+
+    .player-card {
+        padding: 6px 10px;
+        min-width: 60px;
+    }
+
+    .player-card .player-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.7rem;
+        max-width: 55px;
+    }
+
+    .dice-container {
+        width: 70px;
+        height: 70px;
+    }
+
+    .roll-button {
+        padding: 10px 24px;
+        font-size: 14px;
+        min-width: 120px;
+    }
+}
+
+/* Tablet-ish widths */
+@media (max-width: 1023px) {
+    .board-layout {
+        gap: 10px;
+        max-width: 600px;
+    }
+
+    .side-players {
+        min-width: 65px;
+        height: min(55vmin, 380px);
     }
 
     .player-card {
@@ -2210,8 +2343,8 @@
     }
 
     .player-card .player-avatar {
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
     }
 
     .player-card .player-name {
@@ -2219,9 +2352,52 @@
         max-width: 50px;
     }
 
+    .dice-container {
+        width: 65px;
+        height: 65px;
+    }
+}
+
+@media (max-width: 700px) {
+    .board-layout {
+        gap: 8px;
+    }
+
+    .side-players {
+        min-width: 55px;
+        height: min(52vmin, 320px);
+        padding: 10px 0;
+    }
+
+    .player-card {
+        padding: 4px 6px;
+        min-width: 50px;
+    }
+
+    .player-card .player-avatar {
+        width: 30px;
+        height: 30px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.6rem;
+        max-width: 45px;
+    }
+
     .dice-area {
         gap: 10px;
         padding: 5px;
+    }
+
+    .dice-container {
+        width: 60px;
+        height: 60px;
+    }
+
+    .roll-button {
+        padding: 8px 20px;
+        font-size: 13px;
+        min-width: 100px;
     }
 }
 
@@ -2231,18 +2407,79 @@
     }
 
     .side-players {
-        min-width: 50px;
-        height: min(50vmin, 280px);
-        padding: 10px 0;
-    }
-
-    .ludo-board {
-        width: min(50vmin, 280px);
+        min-width: 45px;
+        height: min(48vmin, 280px);
+        padding: 8px 0;
     }
 
     .player-card {
-        padding: 4px 6px;
-        min-width: 45px;
+        padding: 3px 5px;
+        min-width: 40px;
+    }
+
+    .player-card .player-avatar {
+        width: 26px;
+        height: 26px;
+    }
+
+    .player-card .player-name {
+        font-size: 0.55rem;
+        max-width: 38px;
+    }
+
+    .dice-container {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* Short height screens (768px - common on 11-13" laptops with Windows scaling) */
+@media (max-height: 768px) {
+    .side-players {
+        height: min(55vmin, 380px);
+        padding: 10px 0;
+    }
+
+    .player-card {
+        padding: 5px 8px;
+    }
+
+    .player-card .player-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .dice-area {
+        gap: 8px;
+        padding: 5px;
+    }
+
+    .game-container {
+        gap: 5px;
+        padding: 5px;
+    }
+
+    .dice-container {
+        width: 65px;
+        height: 65px;
+    }
+
+    .roll-button {
+        padding: 8px 20px;
+        font-size: 13px;
+    }
+}
+
+/* Very short screens (under 650px height) */
+@media (max-height: 650px) {
+    .side-players {
+        height: min(48vmin, 320px);
+        padding: 5px 0;
+    }
+
+    .player-card {
+        padding: 3px 6px;
+        gap: 3px;
     }
 
     .player-card .player-avatar {
@@ -2252,27 +2489,49 @@
 
     .player-card .player-name {
         font-size: 0.6rem;
-        max-width: 40px;
-    }
-}
-
-@media (max-height: 650px) {
-    .ludo-board {
-        width: min(50vmin, 350px);
     }
 
-    .side-players {
-        height: min(50vmin, 350px);
-        padding: 10px 0;
+    .dice-area {
+        gap: 5px;
+        padding: 3px;
+        margin-top: 5px;
     }
 
-    .player-card {
-        padding: 4px 6px;
+    .game-container {
+        gap: 3px;
+        padding: 3px;
     }
 
-    .player-card .player-avatar {
-        width: 28px;
-        height: 28px;
+    .dice-container {
+        width: 55px;
+        height: 55px;
+    }
+
+    .roll-button {
+        padding: 6px 16px;
+        font-size: 12px;
+        min-width: 90px;
+    }
+
+    .dice-result {
+        font-size: 18px;
+        min-height: 22px;
+    }
+
+    .emote-controls {
+        bottom: 60px;
+    }
+
+    .emote-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 22px;
+    }
+
+    .game-controls .control-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 15px;
     }
 }
 

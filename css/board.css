@@ -325,3 +325,56 @@
 .board-cell[data-row][data-col] {
     position: relative;
 }
+
+/* ============================================
+   RESPONSIVE BOARD SIZING FOR ALL SCREENS
+   ============================================ */
+
+/* Large screens 1920px+ (17" laptops, external monitors) */
+@media (min-width: 1920px) and (min-height: 1000px) {
+    .ludo-board {
+        width: min(65vmin, 580px);
+    }
+}
+
+/* Standard HD 1440-1919px (15" MacBook Pro, 15.6" Windows) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .ludo-board {
+        width: min(65vmin, 500px);
+    }
+}
+
+/* Medium 1280-1439px (13" MacBook Air/Pro) */
+@media (min-width: 1280px) and (max-width: 1439px) {
+    .ludo-board {
+        width: min(62vmin, 460px);
+    }
+}
+
+/* Smaller laptops 1024-1279px (11-12" screens) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    .ludo-board {
+        width: min(58vmin, 400px);
+    }
+}
+
+/* Short height screens (768px height - common on 11-13" laptops) */
+@media (max-height: 768px) {
+    .ludo-board {
+        width: min(55vmin, 380px);
+    }
+}
+
+/* Very short screens (under 700px height) */
+@media (max-height: 650px) {
+    .ludo-board {
+        width: min(50vmin, 340px);
+    }
+}
+
+/* Tablet-ish widths */
+@media (max-width: 1023px) {
+    .ludo-board {
+        width: min(55vmin, 380px);
+    }
+}
