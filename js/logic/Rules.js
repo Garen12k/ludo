@@ -147,6 +147,13 @@ export class Rules {
             return null;
         }
 
+        // Can't capture on entry points (where tokens leave home)
+        for (const entryPoint of Object.values(ENTRY_POINTS)) {
+            if (entryPoint.row === position.row && entryPoint.col === position.col) {
+                return null;
+            }
+        }
+
         // Check for opponent tokens at position
         for (const player of allPlayers) {
             if (player.index === playerIndex) continue;
