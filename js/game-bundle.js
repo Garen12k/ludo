@@ -3501,7 +3501,7 @@
             const slider = document.getElementById(`${prefix}-volume-slider`);
             const percent = document.getElementById(`${prefix}-volume-percent`);
 
-            if (!btn || !popup || !slider) return;
+            if (!btn || !slider) return;
 
             // Load saved volume
             const savedVolume = localStorage.getItem('spaceLudoMusicVolume');
@@ -3518,20 +3518,34 @@
             };
             updateIcon(volumePercent);
 
-            // Toggle popup
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                popup.classList.toggle('active');
-            });
+            // Toggle popup (only if popup element exists)
+            if (popup) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    popup.classList.toggle('active');
+                });
 
-            // Close popup when clicking outside
-            document.addEventListener('click', () => {
-                popup.classList.remove('active');
-            });
+                document.addEventListener('click', () => {
+                    popup.classList.remove('active');
+                });
 
-            popup.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+                popup.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            } else {
+                // Inline mode: toggle mute on button click
+                btn.addEventListener('click', () => {
+                    const currentVol = parseInt(slider.value);
+                    if (currentVol > 0) {
+                        btn._prevVol = currentVol;
+                        slider.value = 0;
+                        slider.dispatchEvent(new Event('input'));
+                    } else {
+                        slider.value = btn._prevVol || 9;
+                        slider.dispatchEvent(new Event('input'));
+                    }
+                });
+            }
 
             // Volume slider change
             slider.addEventListener('input', (e) => {
